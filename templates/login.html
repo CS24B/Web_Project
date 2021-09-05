@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="shortcut icon" type="image/ico" href="../static/img/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <script>
+      window.onload = function() {
+        window.onkeydown = function(e) {
+          if (e.keyCode === 13) {
+            e.preventDefault();
+            if (document.activeElement.id === "username") {
+              document.getElementById("password").focus();
+            } else {
+              document.getElementById("login_form").submit();
+            }
+          }
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div class="login_div">
+      <form action="/loginprocess" method="POST" id="login_form" class="login_form" autocomplete="off">
+        {% if resp == 0 %}
+          <div class="col-12 py-2">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" class="form-control" name="username" id="username">
+          </div>
+          <div class="col-12">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" class="form-control" name="password" id="password">
+          </div>
+        {% elif resp == 1 %}
+          <div class="col-12 py-2">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" class="form-control error_input" name="username" id="username" style="border: 1px solid #ed0034;">
+          </div>
+          <div class="col-12">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" class="form-control error_input" name="password" id="password" style="border: 1px solid #ed0034;">
+          </div>
+          <span class="error_msg">Incorrect username or password.</span>
+        {% elif resp == 2 %}
+          <div class="col-12 pt-2">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" class="form-control error_input" name="username" id="username" style="border: 1px solid #ed0034;">
+          </div>
+          <span class="error_msg">Please enter username.</span>
+          <div class="col-12 pt-2">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" class="form-control" name="password" id="password">
+          </div>
+        {% elif resp == 3 %}
+          <div class="col-12 py-2">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" class="form-control" name="username" id="username">
+          </div>
+          <div class="col-12">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" class="form-control error_input" name="password" id="password" style="border: 1px solid #ed0034;">
+          </div>
+          <span class="error_msg">Please enter password.</span>
+        {% else %}
+          <div class="col-12 py-2">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" class="form-control error_input" name="username" id="username" style="border: 1px solid #ed0034;">
+          </div>
+          <div class="col-12">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" class="form-control error_input" name="password" id="password" style="border: 1px solid #ed0034;">
+          </div>
+          <span class="error_msg">Please enter username and password.</span>
+        {% endif %}
+        <div class="row">
+          <div style="width: 50%; text-align: left; margin-top: 20px;">
+              <button class="btn btn-primary" formaction="/" formnovalidate>Back</button>
+          </div>
+          <div style="width: 50%; text-align: right; margin: 20px 0px;">
+            <button class="btn btn-primary" type="submit">Submit</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Webapp</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="shortcut icon" type="image/ico" href="../static/img/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <script>
+      window.onload = function() {
+
+        var table_students = [];
+        var table_teachers = [];
+        var content = "";
+        var tab = 0;
+        var modal;
+        var last_click = -1;
+        var disabled_keys = [];
+        var modal_vis = false;
+        var student_input_s = document.getElementById("student_name_s");
+        var student_input_t = document.getElementById("student_name_t");
+
+        student_input_s.oninput = function() {
+          if (student_input_s.value === "") {
+            student_input_s.setAttribute("list", "");
+          } else {
+            student_input_s.setAttribute("list", "student_list");
+          }
+        };
+
+        student_input_t.oninput = function() {
+          if (student_input_t.value === "") {
+            student_input_t.setAttribute("list", "");
+          } else {
+            student_input_t.setAttribute("list", "student_list");
+          }
+        };
+
+        change_content = function(val) {
+          content = val;
+        }
+
+        change_tab = function(val) {
+          tab = val;
+        }
+        
+        disable_keys = function(...keys) {
+          console.log(keys);
+          disabled_keys = keys;
+        }
+
+        get_data = async function(cmd, db="School") {
+          const response = await fetch(`/getdata?db=${db}&cmd=${cmd}`);
+          const json = await response.json();
+          return json;
+        }
+
+        intersect = function(...arrs) {
+          arrs = arrs.filter(arr => arr.length);
+          arrs[0] = arrs[0].map(val => val[0]);
+          for (let i = 1; i < arrs.length; i++) {
+            arrs[0] = arrs[0].filter(value => arrs[i].map(val => val[0]).includes(value));
+          }
+          return arrs[0];
+        }
+
+        add_students = async function() {
+          var student_name = document.getElementById("student_name_s").value;
+          var class_name = document.getElementById("class_name_s").value;
+          var course_name = document.getElementById("course_name_s").value;
+          var teacher_name = document.getElementById("teacher_name_s").value;
+          var cca_name = document.getElementById("cca_name_s").value;
+          
+          var students = await get_data(`SELECT ID FROM Student WHERE Name = '${student_name}'`);
+          var students_class = await get_data(`SELECT ID FROM Student WHERE ClassID IN (SELECT ID FROM Class WHERE Name = '${class_name}')`);
+          var students_course = await get_data(`SELECT ID FROM Student WHERE ID IN (SELECT StudentID FROM StudentCourse WHERE CourseID IN (SELECT ID FROM Course WHERE Name = '${course_name}'))`);
+          var students_teacher = await get_data(`SELECT ID FROM Student WHERE ID IN (SELECT StudentID FROM StudentCourse WHERE CourseID IN (SELECT CourseID FROM TeacherCourse WHERE TeacherID IN (SELECT ID FROM Teacher WHERE Name = '${teacher_name}')))`);
+          var students_cca = await get_data(`SELECT ID FROM Student WHERE ID IN (SELECT StudentID FROM StudentCCA WHERE CCAID IN (SELECT ID FROM CCA WHERE Name = '${cca_name}'))`);
+          if (students.length === 0 && students_class.length === 0 && students_course.length === 0 && students_teacher.length === 0 && students_cca.length === 0) { return false; }
+          students = intersect(students, students_class, students_course, students_teacher, students_cca);
+          
+          var table = document.getElementById("student_table");
+          var student_data = await get_data(`SELECT Student.ID, Student.Name, Class.Name FROM Student INNER JOIN Class ON ClassID = Class.ID WHERE Student.ID IN (${"'" + students.join("','") + "'"})`);
+          
+          var cell;
+          for (let i = 0; i < students.length; i++) {
+            if (!(table_students.includes(students[i]))) {
+              table_students.push(students[i]);
+              var row = table.insertRow(-1);
+              row.classList.add("table_data_row");
+              for (let j = 0; j < 3; j++) {
+                cell = row.insertCell(-1);
+                cell.innerHTML = student_data[i][j];
+              }
+              cell = row.insertCell(-1);
+              var img = document.createElement("img");
+              img.style = "height: 18px; width: 18px;";
+              img.src = "../static/img/delete.png";
+              img.alt = "delete";
+              img.className = "select_icon";
+              img.onclick = function() {
+                data_row = this.parentElement.parentElement;
+                table_students.pop(table_students.indexOf(data_row.getElementsByTagName("td")[0].innerHTML));
+                data_row.remove();
+              }
+              cell.appendChild(img);
+            }
+          }
+        }
+
+        clear_students = function() {
+          rows = document.getElementById("student_table").getElementsByClassName("table_data_row");
+          while (rows.length > 0) {
+            rows[0].remove();
+          }
+          table_students = [];
+          document.getElementById("student_name_s").value = "";
+          document.getElementById("class_name_s").value = "";
+          document.getElementById("course_name_s").value = "";
+          document.getElementById("teacher_name_s").value = "";
+          document.getElementById("cca_name_s").value = "";
+        }
+
+        add_teachers = async function() {
+          var teacher_name = document.getElementById("teacher_name_t").value;
+          var class_name = document.getElementById("class_name_t").value;
+          var course_name = document.getElementById("course_name_t").value;
+          var student_name = document.getElementById("student_name_t").value;
+          var cca_name = document.getElementById("cca_name_t").value;
+          
+          var teachers = await get_data(`SELECT ID FROM Teacher WHERE Name = '${teacher_name}'`);
+          var teachers_class = await get_data(`SELECT ID FROM Teacher WHERE ClassID IN (SELECT ID FROM Class WHERE Name = '${class_name}')`);
+          var teachers_course = await get_data(`SELECT ID FROM Teacher WHERE ID IN (SELECT TeacherID FROM TeacherCourse WHERE CourseID IN (SELECT ID FROM Course WHERE Name = '${course_name}'))`);
+          var teachers_student = await get_data(`SELECT ID FROM Teacher WHERE ID IN (SELECT TeacherID FROM TeacherCourse WHERE CourseID IN (SELECT CourseID FROM StudentCourse WHERE StudentID IN (SELECT ID FROM Student WHERE Name = '${student_name}')))`);
+          var teachers_cca = await get_data(`SELECT ID FROM Teacher WHERE ID IN (SELECT TeacherID FROM TeacherCCA WHERE CCAID IN (SELECT ID FROM CCA WHERE Name = '${cca_name}'))`);
+          teachers = intersect(teachers, teachers_class, teachers_course, teachers_student, teachers_cca);
+          
+          var table = document.getElementById("teacher_table");
+          var teacher_data = await get_data(`SELECT ID, Name FROM Teacher WHERE ID IN (${"'" + teachers.join("','") + "'"})`);
+
+          var cell;
+          for (let i = 0; i < teacher_data.length; i++) {
+            if (!(table_teachers.includes(teacher_data[i][0]))) {
+              table_teachers.push(teacher_data[i][0]);
+              var row = table.insertRow(-1);
+              row.classList.add("table_data_row");
+              for (let j = 0; j < 3; j++) {
+                cell = row.insertCell(-1);
+                cell.innerHTML = teacher_data[i][j];
+              }
+              cell = row.insertCell(-1);
+              var img = document.createElement("img");
+              img.style = "height: 18px; width: 18px;"
+              img.src = "../static/img/delete.png";
+              img.alt = "delete";
+              img.className = "select_icon";
+              img.onclick = function() {
+                data_row = this.parentElement.parentElement;
+                table_teachers.pop(table_teachers.indexOf(data_row.getElementsByTagName("td")[0].innerHTML));
+                data_row.remove();
+              }
+              cell.appendChild(img);
+            }
+          }
+        }
+
+        clear_teachers = function() {
+          rows = document.getElementById("teacher_table").getElementsByClassName("table_data_row");
+          while (rows.length > 0) {
+            rows[0].remove();
+          }
+          table_teachers = [];
+          document.getElementById("teacher_name_t").value = "";
+          document.getElementById("class_name_t").value = "";
+          document.getElementById("course_name_t").value = "";
+          document.getElementById("student_name_t").value = "";
+          document.getElementById("cca_name_t").value = "";
+        }
+
+        table_nav = function(e, element) {
+          if ([13, 38, 40].includes(e.keyCode)) {
+            e.preventDefault();
+            if (element.cellIndex === 1) {
+              var table = element.parentNode.parentNode;
+              for (let i = 0; i < table.children.length; i++) {
+                if (element.innerHTML === table.children[i].children[1].innerHTML && element.parentNode.rowIndex !== i) {
+                  element.innerHTML = content;
+                }
+              }
+            }
+          }
+          if (e.keyCode === 13 || e.keyCode === 40) {
+            if (element.parentNode.nextElementSibling === null) {
+              element.blur();
+            } else {
+              element.parentNode.nextElementSibling.children[element.cellIndex].focus();
+            }
+          } else if (e.keyCode === 38) {
+            if (element.parentNode.rowIndex === 1) {
+              element.blur();
+            } else {
+              element.parentNode.previousElementSibling.children[element.cellIndex].focus();
+            }
+          }
+        }
+
+        del_checked = function(e, element) {
+          var input_elements = document.getElementsByTagName("input");
+          document.getElementById("account_del").style.visibility = "hidden";
+          for (let i = 0; i < input_elements.length; i++) {
+            if (input_elements[i].className === "check_del") {
+              if (input_elements[i].checked) {
+                document.getElementById("account_del").style.visibility = "visible";
+                break;
+              }
+            }
+          }
+          if (element) {
+            var table = element.parentNode.parentNode.parentNode;
+            var row_index = [...table.children].indexOf(element.parentNode.parentNode);
+            if (last_click !== -1) {
+              if (last_click !== row_index && table.children[last_click].children[0].children[0].checked && element.checked) {
+                if (e.shiftKey) {
+                  for (let i = Math.min(last_click, row_index) + 1; i < Math.max(last_click, row_index); i++) {
+                    if (table.children[i].children[0].children.length) {
+                      table.children[i].children[0].children[0].checked = true;
+                    }
+                  }
+                }
+              }
+            }
+            if (element.checked === true) {
+              last_click = row_index;
+            }
+          }
+        }
+
+        document.onkeydown = function(e) {
+          if (tab === 4) {
+            if (e.keyCode === 27 && document.activeElement.tagName === "TD") {
+              document.activeElement.blur();
+              return false;
+            }
+            if (document.getElementById("account_del").style.visibility === "visible" && ["BODY", "INPUT"].includes(document.activeElement.tagName)) {
+              if (e.keyCode === 27) {
+                e.preventDefault();
+                var rows = document.getElementById("account_table").children[0].children;
+                var cell;
+                document.getElementById("account_del").style.visibility = "hidden";
+                for (let i = 1; i < rows.length; i++) {
+                  cell = rows[i].children[0]
+                  if (cell.children.length) {
+                    cell.children[0].checked = false;
+                  }
+                }
+              }
+              if (e.keyCode === 8 && !modal_vis) {
+                modal = new bootstrap.Modal(document.getElementById("warning_modal"));
+                modal.show();
+                modal_vis = true;
+              }
+            }
+          }
+        }
+
+        del_rows_check = function() {
+          modal = new bootstrap.Modal(document.getElementById("warning_modal"));
+          modal.show();
+          modal_vis = true;
+        }
+
+        del_rows = function() {
+          if (tab === 4) {
+            var rows = document.getElementById("account_table").children[0].children;
+            var cell;
+            for (let i = rows.length - 1; i > 0; i--) {
+              cell = rows[i].children[0]
+              if (cell.children.length) {
+                if (cell.children[0].checked) {
+                  rows[i].remove();
+                }
+              }
+            }
+          }
+          del_checked();
+          modal.hide();
+        }
+
+        add_row_modal = function() {
+          modal = new bootstrap.Modal(document.getElementById("add_modal_account"));
+          modal.show();
+          modal_vis = true;
+        }
+
+        add_row = function(val) {
+          var row = document.getElementById("account_table").insertRow(-1);
+          row.className = "table_data_row";
+          var cell = row.insertCell(-1);
+          cell.style.textAlign = "center";
+          cell.style.width = "150px";
+          var checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.className = "check_del";
+          checkbox.style = "transform: scale(1.5);";
+          checkbox.setAttribute("onclick", "del_checked(event, this)");
+          cell.appendChild(checkbox);
+          cell = row.insertCell(-1);
+          cell.setAttribute("contenteditable", true);
+          cell.setAttribute("onkeydown", "table_nav(event, this)");
+          cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+          cell.innerHTML = val[0].value;
+          cell = row.insertCell(-1);
+          cell.setAttribute("contenteditable", true);
+          cell.setAttribute("onkeydown", "table_nav(event, this)");
+          cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+          cell.innerHTML = val[1].value;
+          cell = row.insertCell(-1);
+          cell.innerHTML = "1";
+          modal.hide();
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <ul class="nav nav-tabs" role="tablist">
+      <li class="nav-item" onclick="change_tab(0)">
+        <a class="nav-link active" id="availability-tab" data-bs-toggle="tab" href="#availability" role="tab" aria-controls="availability" aria-selected="true">Availability</a>
+      </li>
+      {% if auth == 0 %}
+        <li class="nav-item">
+          <a class="nav-link" href="/login">Login</a>
+        </li>
+      {% elif auth == 1 %}
+        <li class="nav-item" onclick="change_tab(1)">
+          <a class="nav-link" id="add-tab" data-bs-toggle="tab" href="#add" role="tab" aria-controls="add" aria-selected="false">Add</a>
+        </li>
+        <li class="nav-item" onclick="change_tab(2)">
+          <a class="nav-link" id="search-tab" data-bs-toggle="tab" href="#search" role="tab" aria-controls="search" aria-selected="false">Search</a>
+        </li>
+        <li class="nav-item" onclick="change_tab(3)">
+          <a class="nav-link" id="database-tab" data-bs-toggle="tab" href="#database" role="tab" aria-controls="database" aria-selected="false">Database</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/logout">Logout</a>
+        </li>
+      {% else %}
+        <li class="nav-item" onclick="change_tab(1)">
+          <a class="nav-link" id="add-tab" data-bs-toggle="tab" href="#add" role="tab" aria-controls="add" aria-selected="false">Add</a>
+        </li>
+        <li class="nav-item" onclick="change_tab(2)">
+          <a class="nav-link" id="search-tab" data-bs-toggle="tab" href="#search" role="tab" aria-controls="search" aria-selected="false">Search</a>
+        </li>
+        <li class="nav-item" onclick="change_tab(3)">
+          <a class="nav-link" id="database-tab" data-bs-toggle="tab" href="#database" role="tab" aria-controls="database" aria-selected="false">Database</a>
+        </li>
+        <li class="nav-item" onclick="change_tab(4)">
+          <a class="nav-link" id="account-tab" data-bs-toggle="tab" href="#account" role="tab" aria-controls="account" aria-selected="false">Accounts</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/logout">Logout</a>
+        </li>
+      {% endif %}
+    </ul>
+    <div class="tab-content" id="myTabContent">
+      <div class="tab-pane fade show active" id="availability" role="tabpanel">
+        <datalist id="student_list">
+          {% for i in data[0]|sort(attribute=0) %}
+            <option value="{{ i[0] }}"></option>
+          {% endfor %}
+        </datalist>
+        <datalist id="teacher_list">
+          {% for i in data[1]|sort(attribute=0) %}
+            <option value="{{ i[0] }}"></option>
+          {% endfor %}
+        </datalist>
+        <datalist id="class_list">
+          {% for i in data[2]|sort(attribute=0) %}
+            <option value="{{ i[0] }}"></option>
+          {% endfor %}
+        </datalist>
+        <datalist id="course_list">
+          {% for i in data[3]|sort(attribute=0) %}
+            <option value="{{ i[0] }}"></option>
+          {% endfor %}
+        </datalist>
+        <datalist id="cca_list">
+          {% for i in data[4]|sort(attribute=0) %}
+            <option value="{{ i[0] }}"></option>
+          {% endfor %}
+        </datalist>
+        <div style="display: inline-block; width: fit-content;">
+          <input id="student_name_s" class="m-2 form-control" list="" placeholder="Enter Student Name" onclick="this.select();" style="width: 30em;" autocomplete="off">
+          <input id="class_name_s" class="m-2 form-control" list="class_list" placeholder="Enter Class Name" onclick="this.select();" style="width: 30em;" autocomplete="off">
+          <input id="course_name_s" class="m-2 form-control" list="course_list" placeholder="Enter Course Name" onclick="this.select();" style="width: 30em;" autocomplete="off">
+          <input id="teacher_name_s" class="m-2 form-control" list="teacher_list" placeholder="Enter Teacher Name" onclick="this.select();" style="width: 30em;" autocomplete="off">
+          <input id="cca_name_s" class="m-2 form-control" list="cca_list" placeholder="Enter CCA Name" onclick="this.select();" style="width: 30em;" autocomplete="off">
+          <div style="font-size: 0;">
+            <div style="display: inline-block; width: 50%; text-align: left;">
+              <input type="submit" class="btn btn-secondary m-2" value="Add Students" onclick="add_students()">
+            </div>
+            <div style="display: inline-block; width: 50%; text-align: right;">
+              <input type="submit" class="btn btn-secondary m-2" value="Clear Students" onclick="clear_students()">
+            </div>
+          </div>
+        </div>
+        <div style="display: inline-block; width: fit-content;">
+          <input id="teacher_name_t" class="m-2 form-control" list="teacher_list" placeholder="Enter Teacher Name" onclick="this.select();" style="width: 30em;" autocomplete="off">
+          <input id="class_name_t" class="m-2 form-control" list="class_list" placeholder="Enter Class Name" onclick="this.select();" style="width: 30em;" autocomplete="off">
+          <input id="course_name_t" class="m-2 form-control" list="course_list" placeholder="Enter Course Name" onclick="this.select();" style="width: 30em;" autocomplete="off">
+          <input id="student_name_t" class="m-2 form-control" list="" placeholder="Enter Student Name" onclick="this.select();" style="width: 30em;" autocomplete="off">
+          <input id="cca_name_t" class="m-2 form-control" list="cca_list" placeholder="Enter CCA Name" onclick="this.select();" style="width: 30em;" autocomplete="off">
+          <div style="font-size: 0;">
+            <div style="display: inline-block; width: 50%; text-align: left;">
+              <input type="submit" class="btn btn-secondary m-2" value="Add Teachers" onclick="add_teachers()">
+            </div>
+            <div style="display: inline-block; width: 50%; text-align: right;">
+              <input type="submit" class="btn btn-secondary m-2" value="Clear Teachers" onclick="clear_teachers()">
+            </div>
+          </div>
+        </div>
+        <br>
+        <div class="availability_scroll_table">
+          <table id="student_table">
+            <tr class="scroll_head">
+              <th>NRIC/FIN</th>
+              <th>Name</th>
+              <th>Class</th>
+              <th></th>
+            </tr>
+          </table>
+        </div>
+        <div class="availability_scroll_table">
+          <table id="teacher_table">
+            <tr class="scroll_head">
+              <th>NRIC/FIN</th>
+              <th>Name</th>
+              <th></th>
+            </tr>
+          </table>
+        </div>
+      </div>
+      {% if auth >= 1 %}
+        <div class="tab-pane fade" id="add" role="tabpanel" aria-labelledby="add-tab">...</div>
+        <div class="tab-pane fade" id="search" role="tabpanel" aria-labelledby="search-tab">...</div>
+        <div class="tab-pane fade" id="database" role="tabpanel" aria-labelledby="database-tab">...</div>
+      {% endif %}
+      {% if auth == 2 %}
+        <div class="tab-pane fade" id="account" role="tabpanel" aria-labelledby="account-tab">
+          <div class="scroll_table">
+            <table id="account_table">
+              <tr class="scroll_head">
+                <th style="text-align: center; width: 150px; padding: 1px;"><input type="button" id="account_del" class="btn btn-danger" value="Delete" style="visibility: hidden;" onclick="del_rows_check()"></th>
+                <th>Username</th>
+                <th>Password</th>
+                <th>Authorisation</th>
+              </tr>
+              {% for i in data_accs | sort(attribute=1) | sort(attribute=0) | sort(attribute=2, reverse=True)%}
+                <tr class="table_data_row">
+                  {% if i[2] == 1 %}
+                    <td style="text-align: center; width: 150px;"><input type="checkbox" class="check_del" style="transform: scale(1.5);" onclick="del_checked(event, this)"></td>
+                  {% else %}
+                    <td width="150px"></td>
+                  {% endif %}
+                  <td contenteditable="true" onkeydown="table_nav(event, this)" onfocus="change_content(this.innerHTML)">{{ i[0] }}</td>
+                  <td contenteditable="true" onkeydown="table_nav(event, this)" onfocus="change_content(this.innerHTML)">{{ i[1] }}</td>
+                  <td>{{ i[2] }}</td>
+                </tr>
+              {% endfor %}
+            </table>
+          </div>
+          <input type="button" id="account_add" class="btn btn-primary" value="Add Account" onclick="add_row_modal()">
+          <input type="button" id="account_save" class="btn btn-primary" value="Save Changes" data-bs-toggle="modal" data-bs-target="#save_modal_account">
+        </div>
+      {% endif %}
+    </div>
+    <div class="modal" id="warning_modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Warning</h5>
+            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            Confirm data deletion?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-danger" onclick="del_rows()">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal" id="add_modal_account" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <input class="form-control" placeholder="Enter username" required>
+            <input class="form-control" placeholder="Enter password" required>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" onclick="add_row(this.parentNode.previousElementSibling.children)">Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal" id="save_modal_account" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            Confirm save?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" onclick="add_row(this.parentNode.previousElementSibling.children)">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
