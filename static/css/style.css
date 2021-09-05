@@ -1,0 +1,95 @@
+img {
+    vertical-align: middle;
+}
+
+.form_input {
+    margin: 1em;
+    display: block;
+    border-radius: 3px;
+    border: 1px solid grey;
+    height: 30px;
+    width: 200px;
+    outline: none;
+    color: #e5e6e7;
+}
+
+.login_div {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.login_form {
+    border: 1px solid #aaaaaa;
+    width: 300px;
+    padding: 20px;
+    border-radius: 7px;
+}
+
+.error_msg {
+    color: #ed0034;
+    font-size: 12px;
+}
+
+.error_input:focus {
+    box-shadow: 0 0 0 0.25rem rgba(237, 0, 52, 0.25) !important;
+}
+
+.select_icon:hover {
+    cursor: pointer;
+}
+
+.availability_scroll_table {
+    overflow: scroll;
+    height: 450px;
+    display: inline-block;
+    width: 30em;
+    margin: 0.5rem;
+}
+
+.scroll_table {
+    overflow: scroll;
+    height: 614px;
+    width: 80%;
+}
+
+.scroll_head th {
+    padding: 8px;
+}
+
+.scroll_head {
+    text-align: left;
+    position: sticky;
+    background: #ffffff;
+    top: 0;
+    z-index: 1;
+    box-shadow: 0px 1px #000000;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #000000;
+    cursor: default;
+}
+
+td {
+    padding: 8px;
+    text-align: left;
+}
+
+tr {
+    padding: 8px;
+    text-align: left;
+}
+
+tr:nth-of-type(even) {
+    background: #f2f2f2;
+    border-bottom: 1px solid #dde2e7;
+}
+
+tr:nth-of-type(2n+3) {
+    background: #ffffff;
+    border-bottom: 1px solid #dde2e7;
+}
