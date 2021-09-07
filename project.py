@@ -23,7 +23,6 @@ def clash():
             ses2 = con.execute(f"SELECT Day, StartTime, EndTime FROM CourseSession WHERE CourseID = {i[1]}")
             if inters(ses1, ses2):
                 print(teach[0], list(con.execute(f"SELECT Name FROM Teacher WHERE ID = '{teach[0]}'"))[0][0], i[0], list(con.execute(f"SELECT Name FROM Course WHERE ID = '{i[0]}'"))[0][0], i[1], list(con.execute(f"SELECT Name FROM Course WHERE ID = '{i[1]}'"))[0][0])
-clash()
 
 # j = {
 #     "en":["1EN2", "1KI2", "1el2A", "1en2A1", "1en2A3", "1en2B1", "1en2B3", "1gp1A01", "1gp1A02", "1gp1A03", "1gp1A04", "1gp1A05", "1gp1A06", "1gp1A07", "1gp1B08", "1gp1B09", "1gp1B10", "1gp1B11", "1gp1B12", "1gp1B13", "1gp1B14", "1gp1C15", "1gp1C16", "1gp1C17", "1gp1C18", "1gp1C19", "1gp1C20", "1ki2A"],
@@ -148,65 +147,65 @@ def read_data(*cmds, db="School"):
         conn.close()
 
 
-# app = Flask(__name__)
-# app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+app = Flask(__name__)
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
-# @app.route("/", methods=["GET", "POST"])
-# def root():
-#     global resp
-#     resp = 0
-#     data_accs = None
-#     if auth == 2:
-#         data_accs = read_data("SELECT * FROM Account", db="Account")
-#     return render_template("user.html", data=read_data("SELECT Name FROM Student", "SELECT Name FROM Teacher", "SELECT Name FROM Class", "SELECT Name FROM Course", "SELECT Name FROM CCA"), data_accs=data_accs, auth=auth)
+@app.route("/", methods=["GET", "POST"])
+def root():
+    global resp
+    resp = 0
+    data_accs = None
+    if auth == 2:
+        data_accs = read_data("SELECT * FROM Account", db="Account")
+    return render_template("user.html", data=read_data("SELECT Name FROM Student", "SELECT Name FROM Teacher", "SELECT Name FROM Class", "SELECT Name FROM Course", "SELECT Name FROM CCA"), data_accs=data_accs, auth=auth)
 
-# @app.route("/login", methods=["GET", "POST"])
-# def login():
-#     return render_template("login.html", resp=resp)
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    return render_template("login.html", resp=resp)
 
-# @app.route("/loginprocess", methods=["GET", "POST"])
-# def login_process():
-#     global auth, resp
-#     if request.form["username"] == request.form["password"] == "":
-#         resp = 4
-#         return redirect("/login")
-#     if request.form["username"] == "":
-#         resp = 2
-#         return redirect("/login")
-#     if request.form["password"] == "":
-#         resp = 3
-#         return redirect("/login")
+@app.route("/loginprocess", methods=["GET", "POST"])
+def login_process():
+    global auth, resp
+    if request.form["username"] == request.form["password"] == "":
+        resp = 4
+        return redirect("/login")
+    if request.form["username"] == "":
+        resp = 2
+        return redirect("/login")
+    if request.form["password"] == "":
+        resp = 3
+        return redirect("/login")
     
-#     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-#     db_path = os.path.join(BASE_DIR, "database/Account.db")
-#     conn = sqlite3.connect(db_path)
-#     cur = list(conn.execute("SELECT Level FROM Account WHERE Username = ? AND Password = ?", (request.form["username"], request.form["password"])))
-#     conn.close()
-#     if cur == []:
-#         resp = 1
-#         return redirect("/login")
-#     auth = cur[0][0]
-#     resp = 0
-#     return redirect("/")
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(BASE_DIR, "database/Account.db")
+    conn = sqlite3.connect(db_path)
+    cur = list(conn.execute("SELECT Level FROM Account WHERE Username = ? AND Password = ?", (request.form["username"], request.form["password"])))
+    conn.close()
+    if cur == []:
+        resp = 1
+        return redirect("/login")
+    auth = cur[0][0]
+    resp = 0
+    return redirect("/")
 
-# @app.route("/logout", methods=["GET", "POST"])
-# def logout():
-#     global auth
-#     auth = 0
-#     return redirect("/")
+@app.route("/logout", methods=["GET", "POST"])
+def logout():
+    global auth
+    auth = 0
+    return redirect("/")
 
-# @app.route("/getdata", methods=['GET','POST'])
-# def data_get():
-#     db = request.args.get("db")
-#     cmd = request.args.get("cmd")
-#     if request.method == "GET":
-#         data = read_data(cmd, db=db)
-#         if isinstance(data, str):
-#             return data
-#         return json.dumps([i for i in data] if data != [] and not isinstance(data, str) else data)
-#     else:
-#         print(request.get_text())
-#         return "OK", 200
+@app.route("/getdata", methods=['GET','POST'])
+def data_get():
+    db = request.args.get("db")
+    cmd = request.args.get("cmd")
+    if request.method == "GET":
+        data = read_data(cmd, db=db)
+        if isinstance(data, str):
+            return data
+        return json.dumps([i for i in data] if data != [] and not isinstance(data, str) else data)
+    else:
+        print(request.get_text())
+        return "OK", 200
 
-# if __name__ == "__main__":
-#     app.run()
+if __name__ == "__main__":
+    app.run()
