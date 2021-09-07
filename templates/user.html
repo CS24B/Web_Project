@@ -53,6 +53,7 @@
         get_data = async function(cmd, db="School") {
           const response = await fetch(`/getdata?db=${db}&cmd=${cmd}`);
           const json = await response.json();
+          console.log(json);
           return json;
         }
 
@@ -75,7 +76,7 @@
           var students = await get_data(`SELECT ID FROM Student WHERE Name = '${student_name}'`);
           var students_class = await get_data(`SELECT ID FROM Student WHERE ClassID IN (SELECT ID FROM Class WHERE Name = '${class_name}')`);
           var students_course = await get_data(`SELECT ID FROM Student WHERE ID IN (SELECT StudentID FROM StudentCourse WHERE CourseID IN (SELECT ID FROM Course WHERE Name = '${course_name}'))`);
-          var students_teacher = await get_data(`SELECT ID FROM Student WHERE ID IN (SELECT StudentID FROM StudentCourse WHERE CourseID IN (SELECT CourseID FROM TeacherCourse WHERE TeacherID IN (SELECT ID FROM Teacher WHERE Name = '${teacher_name}')))`);
+          var students_teacher = await get_data(`SELECT ID FROM Student WHERE ID IN (SELECT StudentID FROM StudentCourse WHERE CourseID IN (SELECT CourseID FROM TeacherCourse WHERE CourseID > 28 AND CourseID < 249 AND TeacherID IN (SELECT ID FROM Teacher WHERE Name = '${teacher_name}')))`);
           var students_cca = await get_data(`SELECT ID FROM Student WHERE ID IN (SELECT StudentID FROM StudentCCA WHERE CCAID IN (SELECT ID FROM CCA WHERE Name = '${cca_name}'))`);
           if (students.length === 0 && students_class.length === 0 && students_course.length === 0 && students_teacher.length === 0 && students_cca.length === 0) { return false; }
           students = intersect(students, students_class, students_course, students_teacher, students_cca);
@@ -128,24 +129,25 @@
           var course_name = document.getElementById("course_name_t").value;
           var student_name = document.getElementById("student_name_t").value;
           var cca_name = document.getElementById("cca_name_t").value;
-          
+          console.log(teacher_name);
           var teachers = await get_data(`SELECT ID FROM Teacher WHERE Name = '${teacher_name}'`);
           var teachers_class = await get_data(`SELECT ID FROM Teacher WHERE ClassID IN (SELECT ID FROM Class WHERE Name = '${class_name}')`);
           var teachers_course = await get_data(`SELECT ID FROM Teacher WHERE ID IN (SELECT TeacherID FROM TeacherCourse WHERE CourseID IN (SELECT ID FROM Course WHERE Name = '${course_name}'))`);
-          var teachers_student = await get_data(`SELECT ID FROM Teacher WHERE ID IN (SELECT TeacherID FROM TeacherCourse WHERE CourseID IN (SELECT CourseID FROM StudentCourse WHERE StudentID IN (SELECT ID FROM Student WHERE Name = '${student_name}')))`);
+          var teachers_student = await get_data(`SELECT ID FROM Teacher WHERE ID IN (SELECT TeacherID FROM TeacherCourse WHERE CourseID IN (SELECT CourseID FROM StudentCourse WHERE CourseID > 28 AND CourseID < 249 AND StudentID IN (SELECT ID FROM Student WHERE Name = '${student_name}')))`);
           var teachers_cca = await get_data(`SELECT ID FROM Teacher WHERE ID IN (SELECT TeacherID FROM TeacherCCA WHERE CCAID IN (SELECT ID FROM CCA WHERE Name = '${cca_name}'))`);
+          if (teachers.length === 0 && teachers_class.length === 0 && teachers_course.length === 0 && teachers_student.length === 0 && teachers_cca.length === 0) { return false; }
           teachers = intersect(teachers, teachers_class, teachers_course, teachers_student, teachers_cca);
           
           var table = document.getElementById("teacher_table");
           var teacher_data = await get_data(`SELECT ID, Name FROM Teacher WHERE ID IN (${"'" + teachers.join("','") + "'"})`);
-
+          console.log(teacher_data);
           var cell;
           for (let i = 0; i < teacher_data.length; i++) {
             if (!(table_teachers.includes(teacher_data[i][0]))) {
               table_teachers.push(teacher_data[i][0]);
               var row = table.insertRow(-1);
               row.classList.add("table_data_row");
-              for (let j = 0; j < 3; j++) {
+              for (let j = 0; j < 2; j++) {
                 cell = row.insertCell(-1);
                 cell.innerHTML = teacher_data[i][j];
               }
