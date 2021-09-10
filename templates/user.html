@@ -8,235 +8,352 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
     <script>
-      window.onload = function() {
 
-        var table_students = [];
-        var table_teachers = [];
-        var content = "";
-        var tab = 0;
-        var modal;
-        var last_click = -1;
-        var disabled_keys = [];
-        var modal_vis = false;
-        var student_input_s = document.getElementById("student_name_s");
-        var student_input_t = document.getElementById("student_name_t");
+      var table_students = [];
+      var table_teachers = [];
+      var content = "";
+      var tab = 0;
+      var modal;
+      var last_click = -1;
+      var disabled_keys = [];
+      var modal_vis = false;
 
-        student_input_s.oninput = function() {
-          if (student_input_s.value === "") {
-            student_input_s.setAttribute("list", "");
-          } else {
-            student_input_s.setAttribute("list", "student_list");
-          }
-        };
+      function change_content(val) {
+        content = val;
+      }
 
-        student_input_t.oninput = function() {
-          if (student_input_t.value === "") {
-            student_input_t.setAttribute("list", "");
-          } else {
-            student_input_t.setAttribute("list", "student_list");
-          }
-        };
+      function change_tab(val) {
+        tab = val;
+      }
+      
+      function disable_keys(...keys) {
+        disabled_keys = keys;
+      }
 
-        change_content = function(val) {
-          content = val;
+      function intersect(...arrs) {
+        arrs = arrs.filter(arr => arr.length);
+        arrs[0] = arrs[0].map(val => val[0]);
+        for (let i = 1; i < arrs.length; i++) {
+          arrs[0] = arrs[0].filter(value => arrs[i].map(val => val[0]).includes(value));
         }
+        return arrs[0];
+      }
 
-        change_tab = function(val) {
-          tab = val;
-        }
+      async function get_data(cmd, db="School") {
+        const response = await fetch(`/getdata?db=${db}&cmd=${cmd}`);
+        const json = await response.json();
+        return json;
+      }
+
+      async function add_students() {
+        var student_name = document.getElementById("student_name_s").value;
+        var class_name = document.getElementById("class_name_s").value;
+        var course_name = document.getElementById("course_name_s").value;
+        var teacher_name = document.getElementById("teacher_name_s").value;
+        var cca_name = document.getElementById("cca_name_s").value;
         
-        disable_keys = function(...keys) {
-          console.log(keys);
-          disabled_keys = keys;
-        }
-
-        get_data = async function(cmd, db="School") {
-          const response = await fetch(`/getdata?db=${db}&cmd=${cmd}`);
-          const json = await response.json();
-          console.log(json);
-          return json;
-        }
-
-        intersect = function(...arrs) {
-          arrs = arrs.filter(arr => arr.length);
-          arrs[0] = arrs[0].map(val => val[0]);
-          for (let i = 1; i < arrs.length; i++) {
-            arrs[0] = arrs[0].filter(value => arrs[i].map(val => val[0]).includes(value));
-          }
-          return arrs[0];
-        }
-
-        add_students = async function() {
-          var student_name = document.getElementById("student_name_s").value;
-          var class_name = document.getElementById("class_name_s").value;
-          var course_name = document.getElementById("course_name_s").value;
-          var teacher_name = document.getElementById("teacher_name_s").value;
-          var cca_name = document.getElementById("cca_name_s").value;
-          
-          var students = await get_data(`SELECT ID FROM Student WHERE Name = '${student_name}'`);
-          var students_class = await get_data(`SELECT ID FROM Student WHERE ClassID IN (SELECT ID FROM Class WHERE Name = '${class_name}')`);
-          var students_course = await get_data(`SELECT ID FROM Student WHERE ID IN (SELECT StudentID FROM StudentCourse WHERE CourseID IN (SELECT ID FROM Course WHERE Name = '${course_name}'))`);
-          var students_teacher = await get_data(`SELECT ID FROM Student WHERE ID IN (SELECT StudentID FROM StudentCourse WHERE CourseID IN (SELECT CourseID FROM TeacherCourse WHERE CourseID > 28 AND CourseID < 249 AND TeacherID IN (SELECT ID FROM Teacher WHERE Name = '${teacher_name}')))`);
-          var students_cca = await get_data(`SELECT ID FROM Student WHERE ID IN (SELECT StudentID FROM StudentCCA WHERE CCAID IN (SELECT ID FROM CCA WHERE Name = '${cca_name}'))`);
-          if (students.length === 0 && students_class.length === 0 && students_course.length === 0 && students_teacher.length === 0 && students_cca.length === 0) { return false; }
-          students = intersect(students, students_class, students_course, students_teacher, students_cca);
-          
-          var table = document.getElementById("student_table");
-          var student_data = await get_data(`SELECT Student.ID, Student.Name, Class.Name FROM Student INNER JOIN Class ON ClassID = Class.ID WHERE Student.ID IN (${"'" + students.join("','") + "'"})`);
-          
-          var cell;
-          for (let i = 0; i < students.length; i++) {
-            if (!(table_students.includes(students[i]))) {
-              table_students.push(students[i]);
-              var row = table.insertRow(-1);
-              row.classList.add("table_data_row");
-              for (let j = 0; j < 3; j++) {
-                cell = row.insertCell(-1);
-                cell.innerHTML = student_data[i][j];
-              }
+        var students = await get_data(`SELECT ID FROM Student WHERE Name = '${student_name}'`);
+        var students_class = await get_data(`SELECT ID FROM Student WHERE ClassID IN (SELECT ID FROM Class WHERE Name = '${class_name}')`);
+        var students_course = await get_data(`SELECT ID FROM Student WHERE ID IN (SELECT StudentID FROM StudentCourse WHERE CourseID IN (SELECT ID FROM Course WHERE Name = '${course_name}'))`);
+        var students_teacher = await get_data(`SELECT ID FROM Student WHERE ID IN (SELECT StudentID FROM StudentCourse WHERE CourseID IN (SELECT CourseID FROM TeacherCourse WHERE CourseID > 28 AND CourseID < 249 AND TeacherID IN (SELECT ID FROM Teacher WHERE Name = '${teacher_name}')))`);
+        var students_cca = await get_data(`SELECT ID FROM Student WHERE ID IN (SELECT StudentID FROM StudentCCA WHERE CCAID IN (SELECT ID FROM CCA WHERE Name = '${cca_name}'))`);
+        if (students.length === 0 && students_class.length === 0 && students_course.length === 0 && students_teacher.length === 0 && students_cca.length === 0) { return false; }
+        students = intersect(students, students_class, students_course, students_teacher, students_cca);
+        
+        var table = document.getElementById("student_table");
+        var student_data = await get_data(`SELECT Student.ID, Student.Name, Class.Name FROM Student INNER JOIN Class ON ClassID = Class.ID WHERE Student.ID IN (${"'" + students.join("','") + "'"})`);
+        
+        var cell;
+        for (let i = 0; i < students.length; i++) {
+          if (!(table_students.includes(students[i]))) {
+            table_students.push(students[i]);
+            var row = table.insertRow(-1);
+            row.classList.add("table_data_row");
+            for (let j = 0; j < 3; j++) {
               cell = row.insertCell(-1);
-              var img = document.createElement("img");
-              img.style = "height: 18px; width: 18px;";
-              img.src = "../static/img/delete.png";
-              img.alt = "delete";
-              img.className = "select_icon";
-              img.onclick = function() {
-                data_row = this.parentElement.parentElement;
-                table_students.pop(table_students.indexOf(data_row.getElementsByTagName("td")[0].innerHTML));
-                data_row.remove();
-              }
-              cell.appendChild(img);
+              cell.innerHTML = student_data[i][j];
             }
+            cell = row.insertCell(-1);
+            var img = document.createElement("img");
+            img.style = "height: 18px; width: 18px;";
+            img.src = "../static/img/delete.png";
+            img.alt = "delete";
+            img.className = "select_icon";
+            img.onclick = function() {
+              data_row = this.parentElement.parentElement;
+              table_students.pop(table_students.indexOf(data_row.getElementsByTagName("td")[0].innerHTML));
+              data_row.remove();
+            }
+            cell.appendChild(img);
           }
         }
+      }
 
-        clear_students = function() {
-          rows = document.getElementById("student_table").getElementsByClassName("table_data_row");
-          while (rows.length > 0) {
-            rows[0].remove();
-          }
-          table_students = [];
-          document.getElementById("student_name_s").value = "";
-          document.getElementById("class_name_s").value = "";
-          document.getElementById("course_name_s").value = "";
-          document.getElementById("teacher_name_s").value = "";
-          document.getElementById("cca_name_s").value = "";
+      function clear_students() {
+        var rows = document.getElementById("student_table").getElementsByClassName("table_data_row");
+        while (rows.length > 0) {
+          rows[0].remove();
         }
+        table_students = [];
+        document.getElementById("student_name_s").value = "";
+        document.getElementById("class_name_s").value = "";
+        document.getElementById("course_name_s").value = "";
+        document.getElementById("teacher_name_s").value = "";
+        document.getElementById("cca_name_s").value = "";
+      }
 
-        add_teachers = async function() {
-          var teacher_name = document.getElementById("teacher_name_t").value;
-          var class_name = document.getElementById("class_name_t").value;
-          var course_name = document.getElementById("course_name_t").value;
-          var student_name = document.getElementById("student_name_t").value;
-          var cca_name = document.getElementById("cca_name_t").value;
-          console.log(teacher_name);
-          var teachers = await get_data(`SELECT ID FROM Teacher WHERE Name = '${teacher_name}'`);
-          var teachers_class = await get_data(`SELECT ID FROM Teacher WHERE ClassID IN (SELECT ID FROM Class WHERE Name = '${class_name}')`);
-          var teachers_course = await get_data(`SELECT ID FROM Teacher WHERE ID IN (SELECT TeacherID FROM TeacherCourse WHERE CourseID IN (SELECT ID FROM Course WHERE Name = '${course_name}'))`);
-          var teachers_student = await get_data(`SELECT ID FROM Teacher WHERE ID IN (SELECT TeacherID FROM TeacherCourse WHERE CourseID IN (SELECT CourseID FROM StudentCourse WHERE CourseID > 28 AND CourseID < 249 AND StudentID IN (SELECT ID FROM Student WHERE Name = '${student_name}')))`);
-          var teachers_cca = await get_data(`SELECT ID FROM Teacher WHERE ID IN (SELECT TeacherID FROM TeacherCCA WHERE CCAID IN (SELECT ID FROM CCA WHERE Name = '${cca_name}'))`);
-          if (teachers.length === 0 && teachers_class.length === 0 && teachers_course.length === 0 && teachers_student.length === 0 && teachers_cca.length === 0) { return false; }
-          teachers = intersect(teachers, teachers_class, teachers_course, teachers_student, teachers_cca);
-          
-          var table = document.getElementById("teacher_table");
-          var teacher_data = await get_data(`SELECT ID, Name FROM Teacher WHERE ID IN (${"'" + teachers.join("','") + "'"})`);
-          console.log(teacher_data);
-          var cell;
-          for (let i = 0; i < teacher_data.length; i++) {
-            if (!(table_teachers.includes(teacher_data[i][0]))) {
-              table_teachers.push(teacher_data[i][0]);
-              var row = table.insertRow(-1);
-              row.classList.add("table_data_row");
-              for (let j = 0; j < 2; j++) {
-                cell = row.insertCell(-1);
-                cell.innerHTML = teacher_data[i][j];
-              }
+      async function add_teachers() {
+        var teacher_name = document.getElementById("teacher_name_t").value;
+        var class_name = document.getElementById("class_name_t").value;
+        var course_name = document.getElementById("course_name_t").value;
+        var student_name = document.getElementById("student_name_t").value;
+        var cca_name = document.getElementById("cca_name_t").value;
+        
+        var teachers = await get_data(`SELECT ID FROM Teacher WHERE Name = '${teacher_name}'`);
+        var teachers_class = await get_data(`SELECT ID FROM Teacher WHERE ClassID IN (SELECT ID FROM Class WHERE Name = '${class_name}')`);
+        var teachers_course = await get_data(`SELECT ID FROM Teacher WHERE ID IN (SELECT TeacherID FROM TeacherCourse WHERE CourseID IN (SELECT ID FROM Course WHERE Name = '${course_name}'))`);
+        var teachers_student = await get_data(`SELECT ID FROM Teacher WHERE ID IN (SELECT TeacherID FROM TeacherCourse WHERE CourseID IN (SELECT CourseID FROM StudentCourse WHERE CourseID > 28 AND CourseID < 249 AND StudentID IN (SELECT ID FROM Student WHERE Name = '${student_name}')))`);
+        var teachers_cca = await get_data(`SELECT ID FROM Teacher WHERE ID IN (SELECT TeacherID FROM TeacherCCA WHERE CCAID IN (SELECT ID FROM CCA WHERE Name = '${cca_name}'))`);
+        if (teachers.length === 0 && teachers_class.length === 0 && teachers_course.length === 0 && teachers_student.length === 0 && teachers_cca.length === 0) { return false; }
+        teachers = intersect(teachers, teachers_class, teachers_course, teachers_student, teachers_cca);
+        
+        var table = document.getElementById("teacher_table");
+        var teacher_data = await get_data(`SELECT ID, Name FROM Teacher WHERE ID IN (${"'" + teachers.join("','") + "'"})`);
+        
+        var row;
+        var cell;
+        var img;
+        for (let i = 0; i < teacher_data.length; i++) {
+          if (!(table_teachers.includes(teacher_data[i][0]))) {
+            table_teachers.push(teacher_data[i][0]);
+            row = table.insertRow(-1);
+            row.classList.add("table_data_row");
+            for (let j = 0; j < 2; j++) {
               cell = row.insertCell(-1);
-              var img = document.createElement("img");
-              img.style = "height: 18px; width: 18px;"
-              img.src = "../static/img/delete.png";
-              img.alt = "delete";
-              img.className = "select_icon";
-              img.onclick = function() {
-                data_row = this.parentElement.parentElement;
-                table_teachers.pop(table_teachers.indexOf(data_row.getElementsByTagName("td")[0].innerHTML));
-                data_row.remove();
-              }
-              cell.appendChild(img);
+              cell.innerHTML = teacher_data[i][j];
+            }
+            cell = row.insertCell(-1);
+            img = document.createElement("img");
+            img.style = "height: 18px; width: 18px;"
+            img.src = "../static/img/delete.png";
+            img.alt = "delete";
+            img.className = "select_icon";
+            img.onclick = function() {
+              data_row = this.parentElement.parentElement;
+              table_teachers.pop(table_teachers.indexOf(data_row.getElementsByTagName("td")[0].innerHTML));
+              data_row.remove();
+            }
+            cell.appendChild(img);
+          }
+        }
+      }
+
+      function clear_teachers() {
+        var rows = document.getElementById("teacher_table").getElementsByClassName("table_data_row");
+        while (rows.length > 0) {
+          rows[0].remove();
+        }
+        table_teachers = [];
+        document.getElementById("teacher_name_t").value = "";
+        document.getElementById("class_name_t").value = "";
+        document.getElementById("course_name_t").value = "";
+        document.getElementById("student_name_t").value = "";
+        document.getElementById("cca_name_t").value = "";
+      }
+
+      async function search_availability() {
+        var table = document.getElementById("availability_table");
+        var students = document.getElementById("student_table").children[0].getElementsByClassName("table_data_row");
+        var teachers = document.getElementById("teacher_table").children[0].getElementsByClassName("table_data_row");
+        students = Array.from(students).map(x => x.children[0].innerHTML);
+        teachers = Array.from(teachers).map(x => x.children[0].innerHTML);
+        
+        var student_course_times = await get_data(`SELECT Day, StartTime, EndTime FROM CourseSession WHERE CourseID IN (SELECT CourseID FROM StudentCourse WHERE StudentID IN (${"'" + students.join("','") + "'"}))`);
+        var student_cca_times = await get_data(`SELECT Day, StartTime, EndTime FROM CCASession WHERE CCAID IN (SELECT CCAID FROM StudentCCA WHERE StudentID IN (${"'" + students.join("','") + "'"}))`);
+        var teacher_times = await get_data(`SELECT Day, StartTime, EndTime FROM CourseSession WHERE CourseID IN (SELECT CourseID FROM TeacherCourse WHERE TeacherID IN (${"'" + teachers.join("','") + "'"}))`);
+        var all_times = student_course_times.concat(student_cca_times, teacher_times);
+        var times = {"Monday": [], "Tuesday": [], "Wednesday": [], "Thursday": [], "Friday": []};
+        var time_intervals = {"Monday": [], "Tuesday": [], "Wednesday": [], "Thursday": [], "Friday": []};
+        for (let i = 800; i < 1900; i += (i % 100 === 50)*40 + 10) {
+          times["Monday"].push(i);
+          times["Tuesday"].push(i);
+          times["Wednesday"].push(i);
+          times["Thursday"].push(i);
+          times["Friday"].push(i);
+        }
+        if (all_times.length == 0) {
+          return false;
+        }
+        for (let i = 0; i < all_times.length; i++) {
+          for (let j = times[all_times[i][0]].length - 1; j >= 0; j--) {
+            if (
+              times[all_times[i][0]][j] >= parseInt(all_times[i][1])
+              && times[all_times[i][0]][j] < parseInt(all_times[i][2])
+            ) {
+              times[all_times[i][0]].splice(j, 1);
+            } else if (times[all_times[i][0]][j] < parseInt(all_times[i][1])) {
+              break;
             }
           }
         }
-
-        clear_teachers = function() {
-          rows = document.getElementById("teacher_table").getElementsByClassName("table_data_row");
-          while (rows.length > 0) {
-            rows[0].remove();
-          }
-          table_teachers = [];
-          document.getElementById("teacher_name_t").value = "";
-          document.getElementById("class_name_t").value = "";
-          document.getElementById("course_name_t").value = "";
-          document.getElementById("student_name_t").value = "";
-          document.getElementById("cca_name_t").value = "";
-        }
-
-        table_nav = function(e, element) {
-          if ([13, 38, 40].includes(e.keyCode)) {
-            e.preventDefault();
-            if (element.cellIndex === 1) {
-              var table = element.parentNode.parentNode;
-              for (let i = 0; i < table.children.length; i++) {
-                if (element.innerHTML === table.children[i].children[1].innerHTML && element.parentNode.rowIndex !== i) {
-                  element.innerHTML = content;
-                }
-              }
-            }
-          }
-          if (e.keyCode === 13 || e.keyCode === 40) {
-            if (element.parentNode.nextElementSibling === null) {
-              element.blur();
+        for (const day in times) {
+          for (let i = 0; i < times[day].length; i++) {
+            if (time_intervals[day].length > 0 && times[day][i] === time_intervals[day][time_intervals[day].length - 1][1]) {
+              time_intervals[day][time_intervals[day].length - 1][1] = times[day][i] + (times[day][i] % 100 === 50)*40 + 10;
             } else {
-              element.parentNode.nextElementSibling.children[element.cellIndex].focus();
-            }
-          } else if (e.keyCode === 38) {
-            if (element.parentNode.rowIndex === 1) {
-              element.blur();
-            } else {
-              element.parentNode.previousElementSibling.children[element.cellIndex].focus();
+              time_intervals[day].push([times[day][i], times[day][i] + (times[day][i] % 100 === 50)*40 + 10]);
             }
           }
         }
-
-        del_checked = function(e, element) {
-          var input_elements = document.getElementsByTagName("input");
-          document.getElementById("account_del").style.visibility = "hidden";
-          for (let i = 0; i < input_elements.length; i++) {
-            if (input_elements[i].className === "check_del") {
-              if (input_elements[i].checked) {
-                document.getElementById("account_del").style.visibility = "visible";
-                break;
+        var rows = table.getElementsByClassName("table_data_row");
+        while (rows.length > 0) {
+          rows[0].remove();
+        }
+        var row;
+        var cell;
+        for (const day in time_intervals) {
+          for (let i = 0; i < time_intervals[day].length; i++) {
+            row = table.insertRow(-1);
+            row.classList.add("table_data_row");
+            cell = row.insertCell(-1);
+            cell.innerHTML = day;
+            cell = row.insertCell(-1);
+            time_intervals[day][i][0] = (time_intervals[day][i][0] >= 1000 ? "" : "0") + time_intervals[day][i][0].toString();
+            time_intervals[day][i][1] = (time_intervals[day][i][1] >= 1000 ? "" : "0") + time_intervals[day][i][1].toString();
+            cell.innerHTML = `${time_intervals[day][i][0]} - ${time_intervals[day][i][1]}`;
+          }
+        }
+      }
+      
+      function table_nav(e, element) {
+        if ([13, 38, 40].includes(e.keyCode)) {
+          e.preventDefault();
+          if (element.cellIndex === 1) {
+            var table = element.parentNode.parentNode;
+            for (let i = 0; i < table.children.length; i++) {
+              if (element.innerHTML === table.children[i].children[1].innerHTML && element.parentNode.rowIndex !== i) {
+                element.innerHTML = content;
               }
             }
           }
-          if (element) {
-            var table = element.parentNode.parentNode.parentNode;
-            var row_index = [...table.children].indexOf(element.parentNode.parentNode);
-            if (last_click !== -1) {
-              if (last_click !== row_index && table.children[last_click].children[0].children[0].checked && element.checked) {
-                if (e.shiftKey) {
-                  for (let i = Math.min(last_click, row_index) + 1; i < Math.max(last_click, row_index); i++) {
-                    if (table.children[i].children[0].children.length) {
-                      table.children[i].children[0].children[0].checked = true;
-                    }
+        }
+        if (e.keyCode === 13 || e.keyCode === 40) {
+          if (element.parentNode.nextElementSibling === null) {
+            element.blur();
+          } else {
+            element.parentNode.nextElementSibling.children[element.cellIndex].focus();
+          }
+        } else if (e.keyCode === 38) {
+          if (element.parentNode.rowIndex === 1) {
+            element.blur();
+          } else {
+            element.parentNode.previousElementSibling.children[element.cellIndex].focus();
+          }
+        }
+      }
+
+      function del_checked(e, element) {
+        var input_elements = document.getElementsByTagName("input");
+        document.getElementById("account_del").style.visibility = "hidden";
+        for (let i = 0; i < input_elements.length; i++) {
+          if (input_elements[i].className === "check_del") {
+            if (input_elements[i].checked) {
+              document.getElementById("account_del").style.visibility = "visible";
+              break;
+            }
+          }
+        }
+        if (element) {
+          var table = element.parentNode.parentNode.parentNode;
+          var row_index = [...table.children].indexOf(element.parentNode.parentNode);
+          if (last_click !== -1) {
+            if (last_click !== row_index && table.children[last_click].children[0].children[0].checked && element.checked) {
+              if (e.shiftKey) {
+                for (let i = Math.min(last_click, row_index) + 1; i < Math.max(last_click, row_index); i++) {
+                  if (table.children[i].children[0].children.length) {
+                    table.children[i].children[0].children[0].checked = true;
                   }
                 }
               }
             }
-            if (element.checked === true) {
-              last_click = row_index;
+          }
+          if (element.checked === true) {
+            last_click = row_index;
+          }
+        }
+      }
+
+      function del_rows_check() {
+        modal = new bootstrap.Modal(document.getElementById("warning_modal"));
+        modal.show();
+        modal_vis = true;
+      }
+
+      function del_rows() {
+        if (tab === 4) {
+          var rows = document.getElementById("account_table").children[0].children;
+          var cell;
+          for (let i = rows.length - 1; i > 0; i--) {
+            cell = rows[i].children[0]
+            if (cell.children.length) {
+              if (cell.children[0].checked) {
+                rows[i].remove();
+              }
             }
           }
         }
+        del_checked();
+        modal.hide();
+        modal_vis = false;
+      }
+
+      function add_row_modal() {
+        modal = new bootstrap.Modal(document.getElementById("add_modal_account"));
+        modal.show();
+        modal_vis = true;
+      }
+
+      function add_row(val) {
+        var row = document.getElementById("account_table").insertRow(-1);
+        row.className = "table_data_row";
+        var cell = row.insertCell(-1);
+        cell.style.textAlign = "center";
+        cell.style.width = "150px";
+        var checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className = "check_del";
+        checkbox.style = "transform: scale(1.5);";
+        checkbox.setAttribute("onclick", "del_checked(event, this)");
+        cell.appendChild(checkbox);
+        cell = row.insertCell(-1);
+        cell.setAttribute("contenteditable", true);
+        cell.setAttribute("onkeydown", "table_nav(event, this)");
+        cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+        cell.innerHTML = val[0].value;
+        cell = row.insertCell(-1);
+        cell.setAttribute("contenteditable", true);
+        cell.setAttribute("onkeydown", "table_nav(event, this)");
+        cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+        cell.innerHTML = val[1].value;
+        cell = row.insertCell(-1);
+        cell.innerHTML = "1";
+        modal.hide();
+        modal_vis = false;
+      }
+
+      window.onload = function() {
+
+        var student_input_s = document.getElementById("student_name_s");
+        var student_input_t = document.getElementById("student_name_t");
+
+        modal = document.getElementById("warning_modal");
+        modal.addEventListener("hidden.bs.modal", function() {
+          modal_vis = false;
+        });
+        modal = document.getElementById("add_modal_account");
+        modal.addEventListener("hidden.bs.modal", function() {
+          modal_vis = false;
+        });
 
         document.onkeydown = function(e) {
           if (tab === 4) {
@@ -265,62 +382,24 @@
             }
           }
         }
-
-        del_rows_check = function() {
-          modal = new bootstrap.Modal(document.getElementById("warning_modal"));
-          modal.show();
-          modal_vis = true;
-        }
-
-        del_rows = function() {
-          if (tab === 4) {
-            var rows = document.getElementById("account_table").children[0].children;
-            var cell;
-            for (let i = rows.length - 1; i > 0; i--) {
-              cell = rows[i].children[0]
-              if (cell.children.length) {
-                if (cell.children[0].checked) {
-                  rows[i].remove();
-                }
-              }
-            }
+        
+        student_input_s.oninput = function() {
+          if (student_input_s.value === "") {
+            student_input_s.setAttribute("list", "");
+          } else {
+            student_input_s.setAttribute("list", "student_list");
           }
-          del_checked();
-          modal.hide();
-        }
+        };
 
-        add_row_modal = function() {
-          modal = new bootstrap.Modal(document.getElementById("add_modal_account"));
-          modal.show();
-          modal_vis = true;
-        }
-
-        add_row = function(val) {
-          var row = document.getElementById("account_table").insertRow(-1);
-          row.className = "table_data_row";
-          var cell = row.insertCell(-1);
-          cell.style.textAlign = "center";
-          cell.style.width = "150px";
-          var checkbox = document.createElement("input");
-          checkbox.type = "checkbox";
-          checkbox.className = "check_del";
-          checkbox.style = "transform: scale(1.5);";
-          checkbox.setAttribute("onclick", "del_checked(event, this)");
-          cell.appendChild(checkbox);
-          cell = row.insertCell(-1);
-          cell.setAttribute("contenteditable", true);
-          cell.setAttribute("onkeydown", "table_nav(event, this)");
-          cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-          cell.innerHTML = val[0].value;
-          cell = row.insertCell(-1);
-          cell.setAttribute("contenteditable", true);
-          cell.setAttribute("onkeydown", "table_nav(event, this)");
-          cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-          cell.innerHTML = val[1].value;
-          cell = row.insertCell(-1);
-          cell.innerHTML = "1";
-          modal.hide();
-        }
+        student_input_t.oninput = function() {
+          if (student_input_t.value === "") {
+            student_input_t.setAttribute("list", "");
+          } else {
+            student_input_t.setAttribute("list", "student_list");
+          }
+        };
+        
+        
       }
     </script>
   </head>
@@ -421,6 +500,9 @@
             </div>
           </div>
         </div>
+        <div style="display: inline-block; width: fit-content;">
+          <input type="submit" class="btn btn-secondary m-2" style="width: 25em; vertical-align: -6px;" value="Search Availability" onclick="search_availability()">
+        </div>
         <br>
         <div class="availability_scroll_table">
           <table id="student_table">
@@ -438,6 +520,14 @@
               <th>NRIC/FIN</th>
               <th>Name</th>
               <th></th>
+            </tr>
+          </table>
+        </div>
+        <div class="availability_scroll_table" style="width: 25em">
+          <table id="availability_table">
+            <tr class="scroll_head">
+              <th>Day</th>
+              <th>Time</th>
             </tr>
           </table>
         </div>
