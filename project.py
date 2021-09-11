@@ -1,5 +1,4 @@
 from flask import Flask, render_template, redirect, request
-from contextlib import closing
 import os.path, json, sqlite3, random, csv
 import itertools
 
@@ -93,7 +92,7 @@ def clash():
 #                 raise e
 
 
-auth, resp = 0, 0
+auth, resp = 2, 0 #CHANGE BACK TO 0
 
 def add_t(a,b):
     return (a//100+b//60)*100+(a%100+b%60)//60*100+(a%100+b%60)%60
@@ -121,21 +120,13 @@ def gen_ic(sg, year):
     return ic
 
 def read_data(*cmds, db="School"):
+    if cmds[0] is None:
+        return ""
     if db.upper() not in ("SCHOOL", "ACCOUNT") or (db.upper() == "ACCOUNT" and auth < 2):
         return f"<h2>Unable to Access Database: {db}</h2>"
     db = db.title()
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     db_path = os.path.join(BASE_DIR, f"database/{db}.db")
-    if auth == 2:
-        try:
-            conn = sqlite3.connect(db_path)
-            if len(cmds) == 1:
-                return list(conn.execute(cmds[0]))
-            return [list(conn.execute(cmd)) for cmd in cmds]
-        except sqlite3.OperationalError as e:
-            return f"<h2>sqlite3.OperationalError: {e}</h2>"
-        finally:
-            conn.close()
     try:
         conn = sqlite3.connect(db_path)
         if len(cmds) == 1:
@@ -146,6 +137,40 @@ def read_data(*cmds, db="School"):
     finally:
         conn.close()
 
+def update_data(*cmds, db="School"):
+    if cmds[0] is None:
+        return ""
+    if db.upper() not in ("SCHOOL", "ACCOUNT") or (db.upper() == "SCHOOL" and auth == 0) or (db.upper() == "ACCOUNT" and auth < 2):
+        return f"<h2>Unable to Access Database: {db}</h2>"
+    for cmd in cmds:
+        if any(i in cmd.upper() for i in ("CREATE", "DROP", "ALTER", "RENAME", "GRANT", "REVOKE")):
+            return f"<h2>Unauthorised Command</h2>"
+    db = db.title()
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(BASE_DIR, f"database/{db}.db")
+    try:
+        conn = sqlite3.connect(db_path)
+        if len(cmds) == 1:
+            conn.execute(cmds[0])
+        else:
+            for cmd in cmds:
+                conn.execute(cmd)
+        conn.commit()
+        return "<h2>Command Executed</h2>"
+    except sqlite3.OperationalError as e:
+        return f"<h2>sqlite3.OperationalError: {e}</h2>"
+    finally:
+        conn.close()
+
+def restore(db):
+    if db.upper() == "ACCOUNT":
+        with open("database/Account.db", "wb") as f:
+            with open("database/Account_backup.db", "rb") as g:
+                f.write(g.read())
+    elif db.upper() == "SCHOOL":
+        with open("database/School.db", "wb") as f:
+            with open("database/School_backup.db", "rb") as g:
+                f.write(g.read())
 
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
@@ -195,17 +220,69 @@ def logout():
     return redirect("/")
 
 @app.route("/getdata", methods=['GET','POST'])
-def data_get():
-    db = request.args.get("db")
+def get_data():
+    db = "School" if not request.args.get("db") else request.args.get("db")
     cmd = request.args.get("cmd")
     if request.method == "GET":
         data = read_data(cmd, db=db)
         if isinstance(data, str):
             return data
         return json.dumps([i for i in data] if data != [] and not isinstance(data, str) else data)
-    else:
-        print(request.get_text())
-        return "OK", 200
 
+@app.route("/postdata", methods=['GET','POST'])
+def post_data():
+    db = "School" if not request.args.get("db") else request.args.get("db")
+    cmd = request.args.get("cmd")
+    resp = update_data(cmd, db=db)
+    return resp
+
+@app.route("/backup", methods=['GET','POST'])
+def backup():
+    db = "School" if not request.args.get("db") else request.args.get("db")
+    restore(db)
+    return redirect("/")
+
+@app.route("/availability", methods=['GET', 'POST'])
+def availability():
+    times = {
+        "Monday": [i for i in range(800, 1900, 10) if i % 100 < 60],
+        "Tuesday": [i for i in range(800, 1900, 10) if i % 100 < 60],
+        "Wednesday": [i for i in range(800, 1900, 10) if i % 100 < 60],
+        "Thursday": [i for i in range(800, 1900, 10) if i % 100 < 60],
+        "Friday": [i for i in range(800, 1900, 10) if i % 100 < 60]
+    }
+    time_intervals = {"Monday": [], "Tuesday": [], "Wednesday": [], "Thursday": [], "Friday": []}
+    st = "('" + "', '".join(request.form.getlist('st')) + "')"
+    tc = "('" + "', '".join(request.form.getlist('tc')) + "')"
+
+    bad_times = read_data("SELECT Day, StartTime, EndTime FROM CourseSession " +\
+                         "WHERE CourseID IN (SELECT CourseID FROM StudentCourse " +\
+                         f"WHERE StudentID IN {st}) " +\
+                         "UNION SELECT Day, StartTime, EndTime FROM CCASession " +\
+                         "WHERE CCAID IN (SELECT CCAID FROM StudentCCA " +\
+                         f"WHERE StudentID IN {st}) " +\
+                         "UNION SELECT Day, StartTime, EndTime FROM CourseSession " +\
+                         "WHERE CourseID IN (SELECT CourseID FROM TeacherCourse " +\
+                         f"WHERE TeacherID IN {tc})")
+    if len(bad_times) == 0:
+        return redirect("/")
+    for i in list(set(bad_times)):
+        for j in sorted(times[i[0]]):
+            if int(i[1]) <= j < int(i[2]):
+                times[i[0]].remove(j)
+            elif j >= int(i[2]):
+                break
+    for i in times.keys():
+        for j in times[i]:
+            if len(time_intervals[i]) > 0 and j == time_intervals[i][-1][1]:
+              time_intervals[i][-1][1] = j + (j % 100 == 50)*40 + 10
+            else:
+              time_intervals[i].append([j, j + (j % 100 == 50)*40 + 10])
+    times = []
+    for i in time_intervals.keys():
+        for j in time_intervals[i]:
+            times.append([i, "0"*(j[0]<1000) + str(j[0]) + " - " + "0"*(j[1]<1000) + str(j[1])])
+    return render_template("search.html", times = times)
+      
 if __name__ == "__main__":
     app.run()
