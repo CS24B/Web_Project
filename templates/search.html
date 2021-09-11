@@ -1,7 +1,8 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
     <title>Webapp</title>
     <link rel="stylesheet" href="../static/css/style.css">
     <link rel="shortcut icon" type="image/ico" href="../static/img/favicon.ico">
@@ -14,7 +15,7 @@
     </script>
   </head>
   <body>
-    <div class="availability_scroll_table" style="width: 30em; position: fixed; left: 50%; transform: translateX(-50%);">
+    <div class="availability_scroll_table search_availability">
       <table id="availability_table">
         <tr class="scroll_head">
           <th>Day</th>
@@ -25,7 +26,7 @@
           <tr class="table_data_row">
             <td>{{ i[0] }}</td>
             <td>{{ i[1] }}</td>
-            <td><img src="../static/img/delete.png" alt="delete" class="select_icon" style="height: 18px; width: 18px;" onclick="delete_time(this)"></td>
+            <td><img src="../static/img/delete.png" alt="delete" class="select_icon" onclick="delete_time(this)"></td>
           </tr>
         {% endfor %}
       </table>

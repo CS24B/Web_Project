@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
     <title>Webapp</title>
     <link rel="stylesheet" href="../static/css/style.css">
     <link rel="shortcut icon" type="image/ico" href="../static/img/favicon.ico">
@@ -19,6 +20,7 @@
       var modal_vis = false;
       var active_add = 0;
       var active_search = 0;
+      var db_tables = ["Student", "Teacher", "Class", "Course", "CCA", "StudentCourse", "StudentCCA", "TeacherCourse", "CourseSession", "CCASession"]
 
       function change_content(val) {
         content = val;
@@ -31,15 +33,6 @@
       function disable_keys(...keys) {
         disabled_keys = keys;
       }
-
-      // function intersect(...arrs) {
-      //   arrs = arrs.filter(arr => arr.length);
-      //   arrs[0] = arrs[0].map(val => val[0]);
-      //   for (let i = 1; i < arrs.length; i++) {
-      //     arrs[0] = arrs[0].filter(value => arrs[i].map(val => val[0]).includes(value));
-      //   }
-      //   return arrs[0];
-      // }
 
       function intersect(...arrs) {
         arrs = arrs.filter(arr => arr.length);
@@ -98,7 +91,6 @@
             }
             cell = row.insertCell(-1);
             img = document.createElement("img");
-            img.style = "height: 18px; width: 18px;";
             img.src = "../static/img/delete.png";
             img.alt = "delete";
             img.className = "select_icon";
@@ -168,7 +160,6 @@
             }
             cell = row.insertCell(-1);
             img = document.createElement("img");
-            img.style = "height: 18px; width: 18px;"
             img.src = "../static/img/delete.png";
             img.alt = "delete";
             img.className = "select_icon";
@@ -257,6 +248,18 @@
         }
       }
 
+      function data_del_check() {
+        var table = document.getElementsByClassName("search_group_table")[active_search];
+        var rows = table.getElementsByClassName("table_data_row");
+        var checks = Array.from(rows).map(x => x.children[0].children[0]);
+
+        if (checks.some(x => x.checked)) {
+          table.getElementsByClassName("scroll_head")[0].children[0].children[0].style.visibility = "visible";
+        } else {
+          table.getElementsByClassName("scroll_head")[0].children[0].children[0].style.visibility = "hidden";
+        }
+      }
+
       function delete_account_modal() {
         modal = new bootstrap.Modal(document.getElementById("delete_account_modal"));
         modal.show();
@@ -328,6 +331,37 @@
           post_data(`INSERT INTO Account VALUES ('${accounts[i][0]}', '${accounts[i][1]}', ${parseInt(accounts[i][2])})`, "Account");
         }
         modal.hide();
+      }
+
+      function delete_data_modal() {
+        modal = new bootstrap.Modal(document.getElementById("delete_data_modal"));
+        modal.show();
+      }
+
+      function delete_data() {
+        var table = document.getElementsByClassName("search_group_table")[active_search];
+        var rows = table.getElementsByClassName("table_data_row");
+        
+        for (let i = rows.length - 1; i >= 0; i--) {
+          if (rows[i].children[0].children[0].checked) {
+            if (active_search >= 0 && active_search <= 4) {
+              post_data(`DELETE FROM ${db_tables[active_search]} WHERE ID = '${rows[i].children[1].innerHTML}'`);
+            } else if (active_search === 5) {
+              post_data(`DELETE FROM StudentCourse WHERE StudentID = '${rows[i].children[1].innerHTML}' AND CourseID = '${rows[i].children[2].innerHTML}'`);
+            } else if (active_search === 6) {
+              post_data(`DELETE FROM StudentCCA WHERE StudentID = '${rows[i].children[1].innerHTML}' AND CCAID = '${rows[i].children[2].innerHTML}'`);
+            } else if (active_search === 7) {
+              post_data(`DELETE FROM TeacherCourse WHERE TeacherID = '${rows[i].children[1].innerHTML}' AND CourseID = '${rows[i].children[2].innerHTML}'`);
+            } else if (active_search === 8) {
+              post_data(`DELETE FROM CourseSession WHERE CourseID = '${rows[i].children[1].innerHTML}' AND Day = '${rows[i].children[2].innerHTML}' AND StartTime = '${rows[i].children[3].innerHTML}'`);
+            } else {
+              post_data(`DELETE FROM CCASession WHERE CCAID = '${rows[i].children[1].innerHTML}' AND Day = '${rows[i].children[2].innerHTML}' AND StartTime = '${rows[i].children[3].innerHTML}'`);
+            }
+            rows[i].remove();
+          }
+        }
+        modal.hide();
+        table.getElementsByClassName("scroll_head")[0].children[0].children[0].style.visibility = "hidden";
       }
 
       function backup(db="School") {
@@ -499,65 +533,344 @@
 
       async function live_search() {
         var sibs = document.getElementsByClassName("search_group")[active_search].children;
+        var table = document.getElementsByClassName("search_group_table")[active_search];
+        var rows = table.getElementsByClassName("table_data_row");
         var filters = [];
         var result = [];
+        var row;
+        var cell;
+        var checkbox;
+
+        while (rows.length > 0) {
+          rows[0].remove();
+        }
 
         if (active_search == 0) {
           filters.push(await get_data(`SELECT * FROM Student WHERE ID IN ('${sibs[0].value}')`));
           filters.push(await get_data(`SELECT * FROM Student WHERE Name IN ('${sibs[1].value}')`));
           filters.push(await get_data(`SELECT * FROM Student WHERE ClassID IN (${sibs[2].value})`));
           result = intersect(...filters);
-
+          if (typeof result === 'undefined') {
+            return false;
+          }
+          for (let i = 0; i < result.length; i++) {
+            row = table.insertRow(-1);
+            row.classList.add("table_data_row");
+            cell = row.insertCell(-1);
+            checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "check_del";
+            checkbox.style = "transform: scale(1.5);";
+            checkbox.setAttribute("onclick", "data_del_check(event, this)");
+            cell.appendChild(checkbox);
+            cell.style = "text-align: center; width: 150px;"
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][0];
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][1];
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][2];
+          }
         } else if (active_search == 1) {
           filters.push(await get_data(`SELECT * FROM Teacher WHERE ID IN ('${sibs[0].value}')`));
           filters.push(await get_data(`SELECT * FROM Teacher WHERE Name IN ('${sibs[1].value}')`));
           filters.push(await get_data(`SELECT * FROM Teacher WHERE ClassID IN (${sibs[2].value})`));
           result = intersect(...filters);
-
+          if (typeof result === 'undefined') {
+            return false;
+          }
+          for (let i = 0; i < result.length; i++) {
+            row = table.insertRow(-1);
+            row.classList.add("table_data_row");
+            cell = row.insertCell(-1);
+            checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "check_del";
+            checkbox.style = "transform: scale(1.5);";
+            checkbox.setAttribute("onclick", "data_del_check(event, this)");
+            cell.appendChild(checkbox);
+            cell.style = "text-align: center; width: 150px;"
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][0];
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][1];
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][2];
+          }
         } else if (active_search == 2) {
           filters.push(await get_data(`SELECT * FROM Class WHERE ID IN (${sibs[0].value})`));
           filters.push(await get_data(`SELECT * FROM Class WHERE Name IN ('${sibs[1].value}')`));
           result = intersect(...filters);
-
+          if (typeof result === 'undefined') {
+            return false;
+          }
+          for (let i = 0; i < result.length; i++) {
+            row = table.insertRow(-1);
+            row.classList.add("table_data_row");
+            cell = row.insertCell(-1);
+            checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "check_del";
+            checkbox.style = "transform: scale(1.5);";
+            checkbox.setAttribute("onclick", "data_del_check(event, this)");
+            cell.appendChild(checkbox);
+            cell.style = "text-align: center; width: 150px;"
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][0];
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][1];
+          }
         } else if (active_search == 3) {
           filters.push(await get_data(`SELECT * FROM Course WHERE ID IN (${sibs[0].value})`));
           filters.push(await get_data(`SELECT * FROM Course WHERE Name IN ('${sibs[1].value}')`));
           result = intersect(...filters);
-
+          if (typeof result === 'undefined') {
+            return false;
+          }
+          for (let i = 0; i < result.length; i++) {
+            row = table.insertRow(-1);
+            row.classList.add("table_data_row");
+            cell = row.insertCell(-1);
+            checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "check_del";
+            checkbox.style = "transform: scale(1.5);";
+            checkbox.setAttribute("onclick", "data_del_check(event, this)");
+            cell.appendChild(checkbox);
+            cell.style = "text-align: center; width: 150px;"
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][0];
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][1];
+          }
         } else if (active_search == 4) {
           filters.push(await get_data(`SELECT * FROM CCA WHERE ID IN (${sibs[0].value})`));
           filters.push(await get_data(`SELECT * FROM CCA WHERE Name IN ('${sibs[1].value}')`));
           result = intersect(...filters);
-
+          if (typeof result === 'undefined') {
+            return false;
+          }
+          for (let i = 0; i < result.length; i++) {
+            row = table.insertRow(-1);
+            row.classList.add("table_data_row");
+            cell = row.insertCell(-1);
+            checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "check_del";
+            checkbox.style = "transform: scale(1.5);";
+            checkbox.setAttribute("onclick", "data_del_check(event, this)");
+            cell.appendChild(checkbox);
+            cell.style = "text-align: center; width: 150px;"
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][0];
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][1];
+          }
         } else if (active_search == 5) {
           filters.push(await get_data(`SELECT * FROM StudentCourse WHERE StudentID IN ('${sibs[0].value}')`));
           filters.push(await get_data(`SELECT * FROM StudentCourse WHERE CourseID IN (${sibs[1].value})`));
           result = intersect(...filters);
-
+          if (typeof result === 'undefined') {
+            return false;
+          }
+          for (let i = 0; i < result.length; i++) {
+            row = table.insertRow(-1);
+            row.classList.add("table_data_row");
+            cell = row.insertCell(-1);
+            checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "check_del";
+            checkbox.style = "transform: scale(1.5);";
+            checkbox.setAttribute("onclick", "data_del_check(event, this)");
+            cell.appendChild(checkbox);
+            cell.style = "text-align: center; width: 150px;"
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][0];
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][1];
+          }
         } else if (active_search == 6) {
           filters.push(await get_data(`SELECT * FROM StudentCCA WHERE StudentID IN ('${sibs[0].value}')`));
           filters.push(await get_data(`SELECT * FROM StudentCCA WHERE CCAID IN (${sibs[1].value})`));
           result = intersect(...filters);
-
+          if (typeof result === 'undefined') {
+            return false;
+          }
+          for (let i = 0; i < result.length; i++) {
+            row = table.insertRow(-1);
+            row.classList.add("table_data_row");
+            cell = row.insertCell(-1);
+            checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "check_del";
+            checkbox.style = "transform: scale(1.5);";
+            checkbox.setAttribute("onclick", "data_del_check(event, this)");
+            cell.appendChild(checkbox);
+            cell.style = "text-align: center; width: 150px;"
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][0];
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][1];
+          }
         } else if (active_search == 7) {
           filters.push(await get_data(`SELECT * FROM TeacherCourse WHERE TeacherID IN ('${sibs[0].value}')`));
           filters.push(await get_data(`SELECT * FROM TeacherCourse WHERE CourseID IN (${sibs[1].value})`));
           result = intersect(...filters);
-
+          if (typeof result === 'undefined') {
+            return false;
+          }
+          for (let i = 0; i < result.length; i++) {
+            row = table.insertRow(-1);
+            row.classList.add("table_data_row");
+            cell = row.insertCell(-1);
+            checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "check_del";
+            checkbox.style = "transform: scale(1.5);";
+            checkbox.setAttribute("onclick", "data_del_check(event, this)");
+            cell.appendChild(checkbox);
+            cell.style = "text-align: center; width: 150px;"
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][0];
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][1];
+          }
         } else if (active_search == 8) {
           filters.push(await get_data(`SELECT * FROM CourseSession WHERE CourseID IN (${sibs[0].value})`));
           filters.push(await get_data(`SELECT * FROM CourseSession WHERE Day IN ('${sibs[1].value}')`));
           filters.push(await get_data(`SELECT * FROM CourseSession WHERE StartTime IN ('${sibs[2].value}')`));
           filters.push(await get_data(`SELECT * FROM CourseSession WHERE EndTime IN ('${sibs[3].value}')`));
           result = intersect(...filters);
-
+          if (typeof result === 'undefined') {
+            return false;
+          }
+          for (let i = 0; i < result.length; i++) {
+            row = table.insertRow(-1);
+            row.classList.add("table_data_row");
+            cell = row.insertCell(-1);
+            checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "check_del";
+            checkbox.style = "transform: scale(1.5);";
+            checkbox.setAttribute("onclick", "data_del_check(event, this)");
+            cell.appendChild(checkbox);
+            cell.style = "text-align: center; width: 150px;"
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][0];
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][1];
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][2];
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][3];
+          }
         } else {
           filters.push(await get_data(`SELECT * FROM CCASession WHERE CCAID IN (${sibs[0].value})`));
           filters.push(await get_data(`SELECT * FROM CCASession WHERE Day IN ('${sibs[1].value}')`));
           filters.push(await get_data(`SELECT * FROM CCASession WHERE StartTime IN ('${sibs[2].value}')`));
           filters.push(await get_data(`SELECT * FROM CCASession WHERE EndTime IN ('${sibs[3].value}')`));
           result = intersect(...filters);
-
+          if (typeof result === 'undefined') {
+            return false;
+          }
+          for (let i = 0; i < result.length; i++) {
+            row = table.insertRow(-1);
+            row.classList.add("table_data_row");
+            cell = row.insertCell(-1);
+            checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "check_del";
+            checkbox.style = "transform: scale(1.5);";
+            checkbox.setAttribute("onclick", "data_del_check(event, this)");
+            cell.appendChild(checkbox);
+            cell.style = "text-align: center; width: 150px;"
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][0];
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][1];
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][2];
+            cell = row.insertCell(-1);
+            cell.setAttribute("contenteditable", true);
+            // cell.setAttribute("onkeydown", "table_nav(event, this)");
+            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
+            cell.innerHTML = result[i][3];
+          }
         }
       }
 
@@ -596,7 +909,7 @@
 
         var student_input_s = document.getElementById("student_name_s");
         var student_input_t = document.getElementById("student_name_t");
-        var modals = ["delete_account_modal", "add_account_modal", "save_account_modal"]
+        var modals = ["delete_account_modal", "add_account_modal", "save_account_modal", "add_record_modal", "delete_data_modal"];
         var mod;
 
         for (let i = 0; i < modals.length; i++) {
@@ -750,7 +1063,7 @@
       {% if auth > 0 %}
         <div class="tab-pane fade" id="add" role="tabpanel" aria-labelledby="add-tab">
           <div id="add_data_form">
-            <select class="m-2 form-control" style="width: 30em;" onchange="check_add_table(this)">
+            <select aria-label="tables" class="m-2 form-control" style="width: 30em;" onchange="check_add_table(this)">
               <option value="Student">Student</option>
               <option value="Teacher">Teacher</option>
               <option value="Class">Class</option>
@@ -795,7 +1108,7 @@
             </div>
             <div class="add_group" hidden>
               <input list="course_list_id" class="m-2 form-control" placeholder="Enter Course ID" style="width: 30em;" onclick="this.select();" onchange="check_add()">
-              <select class="m-2 form-control" style="width: 30em;" onchange="check_add()">
+              <select aria-label="days" class="m-2 form-control" style="width: 30em;" onchange="check_add()">
                 <option value="Monday">Monday</option>
                 <option value="Tuesday">Tuesday</option>
                 <option value="Wednesday">Wednesday</option>
@@ -807,7 +1120,7 @@
             </div>
             <div class="add_group" hidden>
               <input list="cca_list_id" class="m-2 form-control" placeholder="Enter CCA ID" style="width: 30em;" onclick="this.select();" onchange="check_add()">
-              <select class="m-2 form-control" style="width: 30em;" onchange="check_add()">
+              <select aria-label="days" class="m-2 form-control" style="width: 30em;" onchange="check_add()">
                 <option value="Monday">Monday</option>
                 <option value="Tuesday">Tuesday</option>
                 <option value="Wednesday">Wednesday</option>
@@ -821,7 +1134,7 @@
           </div>
         </div>
         <div class="tab-pane fade" id="search" role="tabpanel" aria-labelledby="search-tab">
-          <select class="m-2 form-control" style="width: 30em;" onchange="check_search_table(this)">
+          <select aria-label="tables" class="m-2 form-control" style="width: 30em;" onchange="check_search_table(this)">
             <option value="Student">Student</option>
             <option value="Teacher">Teacher</option>
             <option value="Class">Class</option>
@@ -837,41 +1150,135 @@
             <input list="student_list_id" class="m-2 form-control" placeholder="Enter Student ID" style="width: 30em;" onclick="this.select();" onchange="live_search()">
             <input list="student_list" class="m-2 form-control" placeholder="Enter Student Name" style="width: 30em;" onclick="this.select();" onchange="live_search()">
             <input list="class_list_id" class="m-2 form-control" placeholder="Enter Class ID" style="width: 30em;" onclick="this.select();" onchange="live_search()">
+            <div class="scroll_table">
+              <table class="search_group_table">
+                <tr class="scroll_head">
+                  <th style="text-align: center; width: 150px; padding: 1px;"><input type="button" class="data_del btn btn-danger" value="Delete" style="visibility: hidden;" onclick="delete_data_modal()"></th>
+                  <th>StudentID</th>
+                  <th>StudentName</th>
+                  <th>ClassID</th>
+                  <th></th>
+                </tr>
+              </table>
+            </div>
           </div>
           <div class="search_group" hidden>
             <input list="teacher_list_id" class="m-2 form-control" placeholder="Enter Teacher ID" style="width: 30em;" onclick="this.select();" onchange="live_search()">
             <input list="teacher_list" class="m-2 form-control" placeholder="Enter Teacher Name" style="width: 30em;" onclick="this.select();" onchange="live_search()">
             <input list="class_list_id" class="m-2 form-control" placeholder="Enter Class ID" style="width: 30em;" onclick="this.select();" onchange="live_search()">
+            <div class="scroll_table">
+              <table class="search_group_table">
+                <tr class="scroll_head">
+                  <th style="text-align: center; width: 150px; padding: 1px;"><input type="button" class="data_del btn btn-danger" value="Delete" style="visibility: hidden;" onclick="delete_data_modal()"></th>
+                  <th>TeacherID</th>
+                  <th>TeacherName</th>
+                  <th>ClassID</th>
+                  <th></th>
+                </tr>
+              </table>
+            </div>
           </div>
           <div class="search_group" hidden>
             <input list="class_list_id" class="m-2 form-control" placeholder="Enter Class ID" style="width: 30em;" onclick="this.select();" onchange="live_search()">
             <input list="class_list" class="m-2 form-control" placeholder="Enter Class Name" style="width: 30em;" onclick="this.select();" onchange="live_search()">
+            <div class="scroll_table">
+              <table class="search_group_table">
+                <tr class="scroll_head">
+                  <th style="text-align: center; width: 150px; padding: 1px;"><input type="button" class="data_del btn btn-danger" value="Delete" style="visibility: hidden;" onclick="delete_data_modal()"></th>
+                  <th>ClassID</th>
+                  <th>ClassName</th>
+                  <th></th>
+                </tr>
+              </table>
+            </div>
           </div>
           <div class="search_group" hidden>
             <input list="course_list_id" class="m-2 form-control" placeholder="Enter Course ID" style="width: 30em;" onclick="this.select();" onchange="live_search()">
             <input list="course_list" class="m-2 form-control" placeholder="Enter Course Name" style="width: 30em;" onclick="this.select();" onchange="live_search()">
+            <div class="scroll_table">
+              <table class="search_group_table">
+                <tr class="scroll_head">
+                  <th style="text-align: center; width: 150px; padding: 1px;"><input type="button" class="data_del btn btn-danger" value="Delete" style="visibility: hidden;" onclick="delete_data_modal()"></th>
+                  <th>CourseID</th>
+                  <th>CourseName</th>
+                  <th></th>
+                </tr>
+              </table>
+            </div>
           </div>
           <div class="search_group" hidden>
             <input list="cca_list_id" class="m-2 form-control" placeholder="Enter CCA ID" style="width: 30em;" onclick="this.select();" onchange="live_search()">
             <input list="cca_list" class="m-2 form-control" placeholder="Enter CCA Name" style="width: 30em;" onclick="this.select();" onchange="live_search()">
+            <div class="scroll_table">
+              <table class="search_group_table">
+                <tr class="scroll_head">
+                  <th style="text-align: center; width: 150px; padding: 1px;"><input type="button" class="data_del btn btn-danger" value="Delete" style="visibility: hidden;" onclick="delete_data_modal()"></th>
+                  <th>CCAID</th>
+                  <th>CCAName</th>
+                  <th></th>
+                </tr>
+              </table>
+            </div>
           </div>
           <div class="search_group" hidden>
             <input list="student_list_id" class="m-2 form-control" placeholder="Enter Student ID" style="width: 30em;" onclick="this.select();" onchange="live_search()">
             <input list="course_list_id" class="m-2 form-control" placeholder="Enter Course ID" style="width: 30em;" onclick="this.select();" onchange="live_search()">
+            <div class="scroll_table">
+              <table class="search_group_table">
+                <tr class="scroll_head">
+                  <th style="text-align: center; width: 150px; padding: 1px;"><input type="button" class="data_del btn btn-danger" value="Delete" style="visibility: hidden;" onclick="delete_data_modal()"></th>
+                  <th>StudentID</th>
+                  <th>CourseID</th>
+                  <th></th>
+                </tr>
+              </table>
+            </div>
           </div>
           <div class="search_group" hidden>
             <input list="student_list_id" class="m-2 form-control" placeholder="Enter Student ID" style="width: 30em;" onclick="this.select();" onchange="live_search()">
             <input list="cca_list_id" class="m-2 form-control" placeholder="Enter CCA ID" style="width: 30em;" onclick="this.select();" onchange="live_search()">
+            <div class="scroll_table">
+              <table class="search_group_table">
+                <tr class="scroll_head">
+                  <th style="text-align: center; width: 150px; padding: 1px;"><input type="button" class="data_del btn btn-danger" value="Delete" style="visibility: hidden;" onclick="delete_data_modal()"></th>
+                  <th>StudentID</th>
+                  <th>CCAID</th>
+                  <th></th>
+                </tr>
+              </table>
+            </div>
           </div>
           <div class="search_group" hidden>
             <input list="teacher_list_id" class="m-2 form-control" placeholder="Enter Teacher ID" style="width: 30em;" onclick="this.select();" onchange="live_search()">
             <input list="course_list_id" class="m-2 form-control" placeholder="Enter Course ID" style="width: 30em;" onclick="this.select();" onchange="live_search()">
+            <div class="scroll_table">
+              <table class="search_group_table">
+                <tr class="scroll_head">
+                  <th style="text-align: center; width: 150px; padding: 1px;"><input type="button" class="data_del btn btn-danger" value="Delete" style="visibility: hidden;" onclick="delete_data_modal()"></th>
+                  <th>TeacherID</th>
+                  <th>CourseID</th>
+                  <th></th>
+                </tr>
+              </table>
+            </div>
           </div>
           <div class="search_group" hidden>
             <input list="course_list_id" class="m-2 form-control" placeholder="Enter Course ID" style="width: 30em;" onclick="this.select();" onchange="live_search()">
             <input list="days" class="m-2 form-control" placeholder="Enter Day" style="width: 30em;" onclick="this.select();" onchange="live_search()">
             <input list="course_start_list" class="m-2 form-control" placeholder="Enter Start Time" style="width: 30em;" onclick="this.select();" onchange="live_search()">
             <input list="course_end_list" class="m-2 form-control" placeholder="Enter End Time" style="width: 30em;" onclick="this.select();" onchange="live_search()">
+            <div class="scroll_table">
+              <table class="search_group_table">
+                <tr class="scroll_head">
+                  <th style="text-align: center; width: 150px; padding: 1px;"><input type="button" class="data_del btn btn-danger" value="Delete" style="visibility: hidden;" onclick="delete_data_modal()"></th>
+                  <th>CourseID</th>
+                  <th>Day</th>
+                  <th>StartTime</th>
+                  <th>EndTime</th>
+                  <th></th>
+                </tr>
+              </table>
+            </div>
           </div>
           <div class="search_group" hidden>
             <input list="cca_list_id" class="m-2 form-control" placeholder="Enter CCA ID" style="width: 30em;" onclick="this.select();" onchange="live_search()">
@@ -879,25 +1286,15 @@
             <input list="cca_start_list" class="m-2 form-control" placeholder="Enter Time" style="width: 30em;" onclick="this.select();" onchange="live_search()">
             <input list="cca_end_list" class="m-2 form-control" placeholder="Enter End Time" style="width: 30em;" onclick="this.select();" onchange="live_search()">
             <div class="scroll_table">
-              <table>
+              <table class="search_group_table">
                 <tr class="scroll_head">
-                  <th style="text-align: center; width: 150px; padding: 1px;"><input type="button" id="account_del" class="btn btn-danger" value="Delete" style="visibility: hidden;" onclick="delete_account_modal()"></th>
-                  <th>Username</th>
-                  <th>Password</th>
-                  <th>Authorisation</th>
+                  <th style="text-align: center; width: 150px; padding: 1px;"><input type="button" class="data_del btn btn-danger" value="Delete" style="visibility: hidden;" onclick="delete_data_modal()"></th>
+                  <th>CCAID</th>
+                  <th>Day</th>
+                  <th>StartTime</th>
+                  <th>EndTime</th>
+                  <th></th>
                 </tr>
-                {% for i in data_accs | sort(attribute=1) | sort(attribute=0) | sort(attribute=2, reverse=True)%}
-                  <tr class="table_data_row">
-                    {% if i[2] == 1 %}
-                      <td style="text-align: center; width: 150px;"><input type="checkbox" class="check_del" style="transform: scale(1.5);" onclick="del_checked(event, this)"></td>
-                    {% else %}
-                      <td width="150px"></td>
-                    {% endif %}
-                    <td contenteditable="true" onkeydown="table_nav(event, this)" onfocus="change_content(this.innerHTML)">{{ i[0] }}</td>
-                    <td contenteditable="true" onkeydown="table_nav(event, this)" onfocus="change_content(this.innerHTML)">{{ i[1] }}</td>
-                    <td>{{ i[2] }}</td>
-                  </tr>
-                {% endfor %}
               </table>
             </div>
           </div>
@@ -912,6 +1309,7 @@
                 <th>Username</th>
                 <th>Password</th>
                 <th>Authorisation</th>
+                <th></th>
               </tr>
               {% for i in data_accs | sort(attribute=1) | sort(attribute=0) | sort(attribute=2, reverse=True)%}
                 <tr class="table_data_row">
@@ -923,6 +1321,7 @@
                   <td contenteditable="true" onkeydown="table_nav(event, this)" onfocus="change_content(this.innerHTML)">{{ i[0] }}</td>
                   <td contenteditable="true" onkeydown="table_nav(event, this)" onfocus="change_content(this.innerHTML)">{{ i[1] }}</td>
                   <td>{{ i[2] }}</td>
+                  <td><img src="../static/img/edit.png" alt="edit" class="select_icon" onclick=()></td>
                 </tr>
               {% endfor %}
             </table>
@@ -1009,6 +1408,24 @@
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             <button type="button" class="btn btn-primary" onclick="add_record()">Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal" id="delete_data_modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            Confirm data deletion?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-danger" onclick="delete_data()">Delete</button>
           </div>
         </div>
       </div>

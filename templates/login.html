@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
     <title>Login</title>
     <link rel="stylesheet" href="../static/css/style.css">
     <link rel="shortcut icon" type="image/ico" href="../static/img/favicon.ico">
@@ -37,17 +38,17 @@
         {% elif resp == 1 %}
           <div class="col-12 py-2">
             <label for="username" class="form-label">Username</label>
-            <input type="text" class="form-control error_input" name="username" id="username" style="border: 1px solid #ed0034;">
+            <input type="text" class="form-control error_input" name="username" id="username">
           </div>
           <div class="col-12">
             <label for="password" class="form-label">Password</label>
-            <input type="password" class="form-control error_input" name="password" id="password" style="border: 1px solid #ed0034;">
+            <input type="password" class="form-control error_input" name="password" id="password">
           </div>
           <span class="error_msg">Incorrect username or password.</span>
         {% elif resp == 2 %}
           <div class="col-12 pt-2">
             <label for="username" class="form-label">Username</label>
-            <input type="text" class="form-control error_input" name="username" id="username" style="border: 1px solid #ed0034;">
+            <input type="text" class="form-control error_input" name="username" id="username">
           </div>
           <span class="error_msg">Please enter username.</span>
           <div class="col-12 pt-2">
@@ -61,25 +62,25 @@
           </div>
           <div class="col-12">
             <label for="password" class="form-label">Password</label>
-            <input type="password" class="form-control error_input" name="password" id="password" style="border: 1px solid #ed0034;">
+            <input type="password" class="form-control error_input" name="password" id="password">
           </div>
           <span class="error_msg">Please enter password.</span>
         {% else %}
           <div class="col-12 py-2">
             <label for="username" class="form-label">Username</label>
-            <input type="text" class="form-control error_input" name="username" id="username" style="border: 1px solid #ed0034;">
+            <input type="text" class="form-control error_input" name="username" id="username">
           </div>
           <div class="col-12">
             <label for="password" class="form-label">Password</label>
-            <input type="password" class="form-control error_input" name="password" id="password" style="border: 1px solid #ed0034;">
+            <input type="password" class="form-control error_input" name="password" id="password">
           </div>
           <span class="error_msg">Please enter username and password.</span>
         {% endif %}
         <div class="row">
-          <div style="width: 50%; text-align: left; margin-top: 20px;">
-              <button class="btn btn-primary" formaction="/" formnovalidate>Back</button>
+          <div class="login_back" style="width: 50%; margin-top: 20px;">
+            <button class="btn btn-primary" formaction="/" formnovalidate>Back</button>
           </div>
-          <div style="width: 50%; text-align: right; margin: 20px 0px;">
+          <div class="login_submit" style="width: 50%; margin: 20px 0px;">
             <button class="btn btn-primary" type="submit">Submit</button>
           </div>
         </div>
