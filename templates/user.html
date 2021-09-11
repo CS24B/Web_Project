@@ -45,12 +45,17 @@
         return json;
       }
 
+      function post_data(cmd, db="School") {
+        fetch(`/postdata?db=${db}&cmd=${cmd}`, {method: "POST"});
+      }
+
       async function add_students() {
         var student_name = document.getElementById("student_name_s").value;
         var class_name = document.getElementById("class_name_s").value;
         var course_name = document.getElementById("course_name_s").value;
         var teacher_name = document.getElementById("teacher_name_s").value;
         var cca_name = document.getElementById("cca_name_s").value;
+        var container = document.getElementById("student_data");
         
         var students = await get_data(`SELECT ID FROM Student WHERE Name = '${student_name}'`);
         var students_class = await get_data(`SELECT ID FROM Student WHERE ClassID IN (SELECT ID FROM Class WHERE Name = '${class_name}')`);
@@ -63,18 +68,26 @@
         var table = document.getElementById("student_table");
         var student_data = await get_data(`SELECT Student.ID, Student.Name, Class.Name FROM Student INNER JOIN Class ON ClassID = Class.ID WHERE Student.ID IN (${"'" + students.join("','") + "'"})`);
         
+        var row;
         var cell;
+        var img;
+        var input;
         for (let i = 0; i < students.length; i++) {
           if (!(table_students.includes(students[i]))) {
+            input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "st";
+            input.value = student_data[i][0];
+            container.appendChild(input);
             table_students.push(students[i]);
-            var row = table.insertRow(-1);
+            row = table.insertRow(-1);
             row.classList.add("table_data_row");
             for (let j = 0; j < 3; j++) {
               cell = row.insertCell(-1);
               cell.innerHTML = student_data[i][j];
             }
             cell = row.insertCell(-1);
-            var img = document.createElement("img");
+            img = document.createElement("img");
             img.style = "height: 18px; width: 18px;";
             img.src = "../static/img/delete.png";
             img.alt = "delete";
@@ -91,6 +104,7 @@
 
       function clear_students() {
         var rows = document.getElementById("student_table").getElementsByClassName("table_data_row");
+        var container = document.getElementById("student_data");
         while (rows.length > 0) {
           rows[0].remove();
         }
@@ -100,6 +114,9 @@
         document.getElementById("course_name_s").value = "";
         document.getElementById("teacher_name_s").value = "";
         document.getElementById("cca_name_s").value = "";
+        while (container.hasChildNodes()) {
+          container.removeChild(container.lastChild);
+        }
       }
 
       async function add_teachers() {
@@ -108,6 +125,7 @@
         var course_name = document.getElementById("course_name_t").value;
         var student_name = document.getElementById("student_name_t").value;
         var cca_name = document.getElementById("cca_name_t").value;
+        var container = document.getElementById("teacher_data");
         
         var teachers = await get_data(`SELECT ID FROM Teacher WHERE Name = '${teacher_name}'`);
         var teachers_class = await get_data(`SELECT ID FROM Teacher WHERE ClassID IN (SELECT ID FROM Class WHERE Name = '${class_name}')`);
@@ -123,8 +141,14 @@
         var row;
         var cell;
         var img;
+        var input;
         for (let i = 0; i < teacher_data.length; i++) {
           if (!(table_teachers.includes(teacher_data[i][0]))) {
+            input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "tc";
+            input.value = teacher_data[i][0];
+            container.appendChild(input);
             table_teachers.push(teacher_data[i][0]);
             row = table.insertRow(-1);
             row.classList.add("table_data_row");
@@ -150,6 +174,7 @@
 
       function clear_teachers() {
         var rows = document.getElementById("teacher_table").getElementsByClassName("table_data_row");
+        var container = document.getElementById("teacher_data");
         while (rows.length > 0) {
           rows[0].remove();
         }
@@ -159,72 +184,11 @@
         document.getElementById("course_name_t").value = "";
         document.getElementById("student_name_t").value = "";
         document.getElementById("cca_name_t").value = "";
+        while (container.hasChildNodes()) {
+          container.removeChild(container.lastChild);
+        }
       }
 
-      async function search_availability() {
-        var table = document.getElementById("availability_table");
-        var students = document.getElementById("student_table").children[0].getElementsByClassName("table_data_row");
-        var teachers = document.getElementById("teacher_table").children[0].getElementsByClassName("table_data_row");
-        students = Array.from(students).map(x => x.children[0].innerHTML);
-        teachers = Array.from(teachers).map(x => x.children[0].innerHTML);
-        
-        var student_course_times = await get_data(`SELECT Day, StartTime, EndTime FROM CourseSession WHERE CourseID IN (SELECT CourseID FROM StudentCourse WHERE StudentID IN (${"'" + students.join("','") + "'"}))`);
-        var student_cca_times = await get_data(`SELECT Day, StartTime, EndTime FROM CCASession WHERE CCAID IN (SELECT CCAID FROM StudentCCA WHERE StudentID IN (${"'" + students.join("','") + "'"}))`);
-        var teacher_times = await get_data(`SELECT Day, StartTime, EndTime FROM CourseSession WHERE CourseID IN (SELECT CourseID FROM TeacherCourse WHERE TeacherID IN (${"'" + teachers.join("','") + "'"}))`);
-        var all_times = student_course_times.concat(student_cca_times, teacher_times);
-        var times = {"Monday": [], "Tuesday": [], "Wednesday": [], "Thursday": [], "Friday": []};
-        var time_intervals = {"Monday": [], "Tuesday": [], "Wednesday": [], "Thursday": [], "Friday": []};
-        for (let i = 800; i < 1900; i += (i % 100 === 50)*40 + 10) {
-          times["Monday"].push(i);
-          times["Tuesday"].push(i);
-          times["Wednesday"].push(i);
-          times["Thursday"].push(i);
-          times["Friday"].push(i);
-        }
-        if (all_times.length == 0) {
-          return false;
-        }
-        for (let i = 0; i < all_times.length; i++) {
-          for (let j = times[all_times[i][0]].length - 1; j >= 0; j--) {
-            if (
-              times[all_times[i][0]][j] >= parseInt(all_times[i][1])
-              && times[all_times[i][0]][j] < parseInt(all_times[i][2])
-            ) {
-              times[all_times[i][0]].splice(j, 1);
-            } else if (times[all_times[i][0]][j] < parseInt(all_times[i][1])) {
-              break;
-            }
-          }
-        }
-        for (const day in times) {
-          for (let i = 0; i < times[day].length; i++) {
-            if (time_intervals[day].length > 0 && times[day][i] === time_intervals[day][time_intervals[day].length - 1][1]) {
-              time_intervals[day][time_intervals[day].length - 1][1] = times[day][i] + (times[day][i] % 100 === 50)*40 + 10;
-            } else {
-              time_intervals[day].push([times[day][i], times[day][i] + (times[day][i] % 100 === 50)*40 + 10]);
-            }
-          }
-        }
-        var rows = table.getElementsByClassName("table_data_row");
-        while (rows.length > 0) {
-          rows[0].remove();
-        }
-        var row;
-        var cell;
-        for (const day in time_intervals) {
-          for (let i = 0; i < time_intervals[day].length; i++) {
-            row = table.insertRow(-1);
-            row.classList.add("table_data_row");
-            cell = row.insertCell(-1);
-            cell.innerHTML = day;
-            cell = row.insertCell(-1);
-            time_intervals[day][i][0] = (time_intervals[day][i][0] >= 1000 ? "" : "0") + time_intervals[day][i][0].toString();
-            time_intervals[day][i][1] = (time_intervals[day][i][1] >= 1000 ? "" : "0") + time_intervals[day][i][1].toString();
-            cell.innerHTML = `${time_intervals[day][i][0]} - ${time_intervals[day][i][1]}`;
-          }
-        }
-      }
-      
       function table_nav(e, element) {
         if ([13, 38, 40].includes(e.keyCode)) {
           e.preventDefault();
@@ -283,13 +247,12 @@
         }
       }
 
-      function del_rows_check() {
-        modal = new bootstrap.Modal(document.getElementById("warning_modal"));
+      function delete_account_modal() {
+        modal = new bootstrap.Modal(document.getElementById("delete_account_modal"));
         modal.show();
-        modal_vis = true;
       }
 
-      function del_rows() {
+      function delete_accounts() {
         if (tab === 4) {
           var rows = document.getElementById("account_table").children[0].children;
           var cell;
@@ -304,17 +267,19 @@
         }
         del_checked();
         modal.hide();
-        modal_vis = false;
       }
 
-      function add_row_modal() {
-        modal = new bootstrap.Modal(document.getElementById("add_modal_account"));
+      function add_account_modal() {
+        modal = new bootstrap.Modal(document.getElementById("add_account_modal"));
         modal.show();
-        modal_vis = true;
       }
 
-      function add_row(val) {
-        var row = document.getElementById("account_table").insertRow(-1);
+      function add_account(val) {
+        table = document.getElementById("account_table");
+        if (Array.from(table.children[0].getElementsByClassName("table_data_row")).map(x => x.children[1].innerHTML).includes(val[0].value)) {
+          return false;
+        }
+        var row = table.insertRow(-1);
         row.className = "table_data_row";
         var cell = row.insertCell(-1);
         cell.style.textAlign = "center";
@@ -338,22 +303,44 @@
         cell = row.insertCell(-1);
         cell.innerHTML = "1";
         modal.hide();
-        modal_vis = false;
+      }
+
+      function save_account_modal() {
+        modal = new bootstrap.Modal(document.getElementById("save_account_modal"));
+        modal.show();
+      }
+
+      function save_accounts() {
+        var rows = document.getElementById("account_table").children[0].getElementsByClassName("table_data_row");
+        var accounts = Array.from(rows).map(x => [x.children[1].innerHTML, x.children[2].innerHTML, x.children[3].innerHTML]);
+        post_data("DELETE FROM Account", "Account");
+        for (let i = 0; i < accounts.length; i++) {
+          post_data(`INSERT INTO Account VALUES ('${accounts[i][0]}', '${accounts[i][1]}', ${parseInt(accounts[i][2])})`, "Account");
+        }
+        modal.hide();
+      }
+
+      function backup(db="School") {
+        fetch(`/backup?db=${db}`, {method: "POST"});
+        location.reload();
       }
 
       window.onload = function() {
 
         var student_input_s = document.getElementById("student_name_s");
         var student_input_t = document.getElementById("student_name_t");
+        var modals = ["delete_account_modal", "add_account_modal", "save_account_modal"]
+        var mod;
 
-        modal = document.getElementById("warning_modal");
-        modal.addEventListener("hidden.bs.modal", function() {
-          modal_vis = false;
-        });
-        modal = document.getElementById("add_modal_account");
-        modal.addEventListener("hidden.bs.modal", function() {
-          modal_vis = false;
-        });
+        for (let i = 0; i < modals.length; i++) {
+          mod = document.getElementById(modals[i]);
+          mod.addEventListener("hidden.bs.modal", function() {
+            modal_vis = false;
+          });
+          mod.addEventListener("show.bs.modal", function() {
+            modal_vis = true;
+          });
+        }
 
         document.onkeydown = function(e) {
           if (tab === 4) {
@@ -375,9 +362,8 @@
                 }
               }
               if (e.keyCode === 8 && !modal_vis) {
-                modal = new bootstrap.Modal(document.getElementById("warning_modal"));
+                modal = new bootstrap.Modal(document.getElementById("delete_account_modal"));
                 modal.show();
-                modal_vis = true;
               }
             }
           }
@@ -398,7 +384,6 @@
             student_input_t.setAttribute("list", "student_list");
           }
         };
-        
         
       }
     </script>
@@ -501,7 +486,11 @@
           </div>
         </div>
         <div style="display: inline-block; width: fit-content;">
-          <input type="submit" class="btn btn-secondary m-2" style="width: 25em; vertical-align: -6px;" value="Search Availability" onclick="search_availability()">
+          <form action="/availability" method="post">
+            <div id="student_data"></div>
+            <div id="teacher_data"></div>
+            <input type="submit" class="btn btn-secondary m-2" style="width: 25em; vertical-align: -6px;" value="Search Availability">
+          </form>
         </div>
         <br>
         <div class="availability_scroll_table">
@@ -523,26 +512,43 @@
             </tr>
           </table>
         </div>
-        <div class="availability_scroll_table" style="width: 25em">
-          <table id="availability_table">
-            <tr class="scroll_head">
-              <th>Day</th>
-              <th>Time</th>
-            </tr>
-          </table>
-        </div>
       </div>
       {% if auth >= 1 %}
         <div class="tab-pane fade" id="add" role="tabpanel" aria-labelledby="add-tab">...</div>
         <div class="tab-pane fade" id="search" role="tabpanel" aria-labelledby="search-tab">...</div>
-        <div class="tab-pane fade" id="database" role="tabpanel" aria-labelledby="database-tab">...</div>
+        <div class="tab-pane fade" id="database" role="tabpanel" aria-labelledby="database-tab">
+          <div class="scroll_table">
+            <table id="student_table">
+              <tr class="scroll_head">
+                <th style="text-align: center; width: 150px; padding: 1px;"><input type="button" id="account_del" class="btn btn-danger" value="Delete" style="visibility: hidden;" onclick="delete_account_modal()"></th>
+                <th>Name</th>
+                <th>Class</th>
+                <th>CCA</th>
+              </tr>
+              {% for i in data_accs | sort(attribute=1) | sort(attribute=0) | sort(attribute=2, reverse=True)%}
+                <tr class="table_data_row">
+                  {% if i[2] == 1 %}
+                    <td style="text-align: center; width: 150px;"><input type="checkbox" class="check_del" style="transform: scale(1.5);" onclick="del_checked(event, this)"></td>
+                  {% else %}
+                    <td width="150px"></td>
+                  {% endif %}
+                  <td contenteditable="true" onkeydown="table_nav(event, this)" onfocus="change_content(this.innerHTML)">{{ i[0] }}</td>
+                  <td contenteditable="true" onkeydown="table_nav(event, this)" onfocus="change_content(this.innerHTML)">{{ i[1] }}</td>
+                  <td>{{ i[2] }}</td>
+                </tr>
+              {% endfor %}
+            </table>
+          </div>
+          <input type="button" id="account_add" class="btn btn-primary" value="Add Account" onclick="add_account_modal()">
+          <input type="button" id="account_save" class="btn btn-primary" value="Save Changes" onclick="save_account_modal()">
+        </div>
       {% endif %}
       {% if auth == 2 %}
         <div class="tab-pane fade" id="account" role="tabpanel" aria-labelledby="account-tab">
           <div class="scroll_table">
             <table id="account_table">
               <tr class="scroll_head">
-                <th style="text-align: center; width: 150px; padding: 1px;"><input type="button" id="account_del" class="btn btn-danger" value="Delete" style="visibility: hidden;" onclick="del_rows_check()"></th>
+                <th style="text-align: center; width: 150px; padding: 1px;"><input type="button" id="account_del" class="btn btn-danger" value="Delete" style="visibility: hidden;" onclick="delete_account_modal()"></th>
                 <th>Username</th>
                 <th>Password</th>
                 <th>Authorisation</th>
@@ -561,16 +567,15 @@
               {% endfor %}
             </table>
           </div>
-          <input type="button" id="account_add" class="btn btn-primary" value="Add Account" onclick="add_row_modal()">
-          <input type="button" id="account_save" class="btn btn-primary" value="Save Changes" data-bs-toggle="modal" data-bs-target="#save_modal_account">
+          <input type="button" id="account_add" class="btn btn-primary" value="Add Account" onclick="add_account_modal()">
+          <input type="button" id="account_save" class="btn btn-primary" value="Save Changes" onclick="save_account_modal()">
         </div>
       {% endif %}
     </div>
-    <div class="modal" id="warning_modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal" id="delete_account_modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="exampleModalLabel">Warning</h5>
             <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
@@ -580,12 +585,12 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-danger" onclick="del_rows()">Delete</button>
+            <button type="button" class="btn btn-danger" onclick="delete_accounts()">Delete</button>
           </div>
         </div>
       </div>
     </div>
-    <div class="modal" id="add_modal_account" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal" id="add_account_modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
@@ -599,12 +604,12 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-primary" onclick="add_row(this.parentNode.previousElementSibling.children)">Add</button>
+            <button type="button" class="btn btn-primary" onclick="add_account(this.parentNode.previousElementSibling.children)">Add</button>
           </div>
         </div>
       </div>
     </div>
-    <div class="modal" id="save_modal_account" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal" id="save_account_modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
@@ -617,7 +622,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-primary" onclick="add_row(this.parentNode.previousElementSibling.children)">Save</button>
+            <button type="button" class="btn btn-primary" onclick="save_accounts()">Save</button>
           </div>
         </div>
       </div>

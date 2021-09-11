@@ -1,168 +1,37 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1">
-    <title>Advanced Search Form</title>
+    <meta charset="UTF-8">
+    <title>Webapp</title>
+    <link rel="stylesheet" href="../static/css/style.css">
     <link rel="shortcut icon" type="image/ico" href="../static/img/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     <script>
-      var entities = {
-        "student": [
-          "NRIC/FIN",
-          "Contact Number",
-          "Class",
-          "Course",
-          "Teacher",
-          "Subject",
-          "Facility"
-        ],
-        "teacher": [
-          "NRIC/FIN",
-          "Contact Number",
-          "Class",
-          "Course",
-          "Student",
-          "Subject",
-          "Facility"
-        ],
-        "class": [
-          "Homeroom",
-          "Teacher",
-          "Student"
-        ],
-        "course": [
-          "Subject",
-          "Facility",
-          "Teacher",
-          "Student"
-        ],
-        "facility": [
-          "Class",
-          "Course",
-          "Teacher",
-          "Student"
-        ]
+      function delete_time(element) {
+        var row = element.parentElement.parentElement;
+        row.remove();
       }
-
-      function compare(a, b) {
-        if (typeof a === "string") {
-          return a.toLowerCase().localeCompare(b.toLowerCase());
-        }
-        return a - b;
-      }
-
-      window.onload = function() {
-        var entity = document.getElementById("entity");
-        var attr = document.getElementById("attr");
-        var search = document.getElementById("search");
-        var submit = document.getElementById("submit");
-        attr.style.width = "9em";
-        entity_change = function() {
-          attr.length = 1;
-          search.value = "";
-          for (let i = 0; i < entities[entity.value].length; i++) {
-            if (entities[entity.value][i] === "NRIC/FIN") {
-              attr.options[attr.options.length] = new Option(entities[entity.value][i], "id");
-            } else if (entities[entity.value][i] === "Contact Number") {
-              attr.options[attr.options.length] = new Option(entities[entity.value][i], "contact");
-            } else if (entities[entity.value][i] === "Homeroom") {
-              attr.options[attr.options.length] = new Option(entities[entity.value][i], "facility");
-            } else {
-              attr.options[attr.options.length] = new Option(entities[entity.value][i], entities[entity.value][i].toLowerCase());
-            }
-          }
-          attr.style.width = "9em";
-          attr_change();
-        }
-        attr_change = function() {
-          search.value = "";
-          var value_list = document.getElementById("value_list");
-          var options = value_list.children.length
-          var data_list = [];
-          var entity_ind = 0;
-          var attr_ind = 0;
-          var data = {{ js_data|safe }};  //jinja induced error
-          for (let i = 0; i < options; i++) {
-            value_list.children[0].remove();
-          }
-          if ((entity.value === "teacher" && ["name", "id", "contact"].includes(attr.value)) || attr.value === "teacher") {
-            entity_ind = 1;
-          } else if ((entity.value === "class" && attr.value === "name") || attr.value === "class") {
-            entity_ind = 2;
-          } else if ((entity.value === "course" && attr.value === "name") || attr.value === "course") {
-            entity_ind = 3;
-          } else if ((entity.value === "facility" && attr.value === "name") || attr.value === "facility") {
-            entity_ind = 4;
-          } else if (attr.value === "subject") {
-            entity_ind = 5;
-          }
-          if (attr.value === "id") {
-            attr_ind = 1;
-          } else if (attr.value === "contact") {
-            attr_ind = 2;
-          }
-          for (let i = 0; i < data[entity_ind].length; i++) {
-            if (entity_ind !== 0 && entity_ind !== 1) {
-              data_list[i] = data[entity_ind][i];
-            } else {
-              data_list[i] = data[entity_ind][i][attr_ind];
-            }
-          }
-          data_list.sort(compare);
-          for (let i = 0; i < data_list.length; i++) {
-            var option = document.createElement("option");
-            option.value = data_list[i];
-            value_list.appendChild(option);
-          }
-        }
-        submit.onclick = function(e) {
-          var search_val = document.getElementById("search").value;
-          var list_vals = document.getElementById("value_list").children;
-          for (let i = 0; i < list_vals.length; i++) {
-            if (list_vals[i].value == search_val) {
-              return null;
-            }
-          }
-          e.preventDefault();
-          // Add exception handling UI
-        }
-      }
-
-      function checkEnter(e){
-        e = e || event;
-        var txtArea = /textarea/i.test((e.target || e.srcElement).tagName);
-        return txtArea || (e.keyCode || e.which || e.charCode || 0) !== 13;
-      }
-      document.onkeypress = checkEnter;
     </script>
   </head>
   <body>
-    <form action="/record" method="POST" autocomplete="off">
-      <label for="entity">Entity: </label>
-      <select name="entity" id="entity" onchange="entity_change()">
-        <option value="student">Student</option>
-        <option value="teacher">Teacher</option>
-        <option value="class">Class</option>
-        <option value="course">Course</option>
-        <option value="facility">Facility</option>
-      </select>
-      <label for="attr">Attribute: </label>
-      <select name="attr" id="attr" onchange="attr_change()">
-        <option value="name">Name</option>
-        <option value="id">NRIC/FIN</option>
-        <option value="contact">Contact Number</option>
-        <option value="class">Class</option>
-        <option value="course">Course</option>
-        <option value="teacher">Teacher</option>
-        <option value="facility">Facility</option>
-      </select>
-      <label for="search">Search: </label>
-      <input name="search" id="search" placeholder="Search" list="value_list" required>
-      <datalist id="value_list">
-        {% for i in data[0]|sort(attribute=0) %}
-        <option value="{{ i[0] }}"></option>
+    <div class="availability_scroll_table" style="width: 30em; position: fixed; left: 50%; transform: translateX(-50%);">
+      <table id="availability_table">
+        <tr class="scroll_head">
+          <th>Day</th>
+          <th>Time</th>
+          <th></th>
+        </tr>
+        {% for i in times %}
+          <tr class="table_data_row">
+            <td>{{ i[0] }}</td>
+            <td>{{ i[1] }}</td>
+            <td><img src="../static/img/delete.png" alt="delete" class="select_icon" style="height: 18px; width: 18px;" onclick="delete_time(this)"></td>
+          </tr>
         {% endfor %}
-      </datalist>
-      <input type="submit" value="Search" id="submit">
+      </table>
+    </div>
+    <form action="/">
+      <input type="submit" class="btn btn-secondary m-2" value="Back">
     </form>
   </body>
 </html>
