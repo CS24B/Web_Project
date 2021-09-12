@@ -16,6 +16,7 @@
       var tab = 0;
       var modal;
       var last_click = -1;
+      var last_click_data = -1;
       var edit_row;
       var disabled_keys = [];
       var modal_vis = false;
@@ -127,16 +128,14 @@
         var class_name = document.getElementById("class_name_t").value;
         var course_name = document.getElementById("course_name_t").value;
         var student_name = document.getElementById("student_name_t").value;
-        var cca_name = document.getElementById("cca_name_t").value;
         var container = document.getElementById("teacher_data");
         
         var teachers = await get_data(`SELECT ID FROM Teacher WHERE Name = '${teacher_name}'`);
         var teachers_class = await get_data(`SELECT ID FROM Teacher WHERE ClassID IN (SELECT ID FROM Class WHERE Name = '${class_name}')`);
         var teachers_course = await get_data(`SELECT ID FROM Teacher WHERE ID IN (SELECT TeacherID FROM TeacherCourse WHERE CourseID IN (SELECT ID FROM Course WHERE Name = '${course_name}'))`);
         var teachers_student = await get_data(`SELECT ID FROM Teacher WHERE ID IN (SELECT TeacherID FROM TeacherCourse WHERE CourseID IN (SELECT CourseID FROM StudentCourse WHERE CourseID > 28 AND CourseID < 249 AND StudentID IN (SELECT ID FROM Student WHERE Name = '${student_name}')))`);
-        var teachers_cca = await get_data(`SELECT ID FROM Teacher WHERE ID IN (SELECT TeacherID FROM TeacherCCA WHERE CCAID IN (SELECT ID FROM CCA WHERE Name = '${cca_name}'))`);
-        if (teachers.length === 0 && teachers_class.length === 0 && teachers_course.length === 0 && teachers_student.length === 0 && teachers_cca.length === 0) { return false; }
-        teachers = intersect(teachers, teachers_class, teachers_course, teachers_student, teachers_cca);
+        if (teachers.length === 0 && teachers_class.length === 0 && teachers_course.length === 0 && teachers_student.length === 0) { return false; }
+        teachers = intersect(teachers, teachers_class, teachers_course, teachers_student);
         
         var table = document.getElementById("teacher_table");
         var teacher_data = await get_data(`SELECT ID, Name FROM Teacher WHERE ID IN (${"'" + teachers.join("','") + "'"})`);
@@ -185,7 +184,6 @@
         document.getElementById("class_name_t").value = "";
         document.getElementById("course_name_t").value = "";
         document.getElementById("student_name_t").value = "";
-        document.getElementById("cca_name_t").value = "";
         while (container.hasChildNodes()) {
           container.removeChild(container.lastChild);
         }
@@ -222,7 +220,7 @@
         }
       }
 
-      function data_del_check() {
+      function data_del_check(e, element) {
         var table = document.getElementsByClassName("search_group_table")[active_search];
         var rows = table.getElementsByClassName("table_data_row");
         var checks = Array.from(rows).map(x => x.children[0].children[0]);
@@ -231,6 +229,25 @@
           table.getElementsByClassName("scroll_head")[0].children[0].children[0].style.visibility = "visible";
         } else {
           table.getElementsByClassName("scroll_head")[0].children[0].children[0].style.visibility = "hidden";
+        }
+
+        if (element) {
+          var table = element.parentNode.parentNode.parentNode;
+          var row_index = [...table.children].indexOf(element.parentNode.parentNode);
+          if (last_click_data !== -1) {
+            if (last_click_data !== row_index && table.children[last_click_data].children[0].children[0].checked && element.checked) {
+              if (e.shiftKey) {
+                for (let i = Math.min(last_click_data, row_index) + 1; i < Math.max(last_click_data, row_index); i++) {
+                  if (table.children[i].children[0].children.length) {
+                    table.children[i].children[0].children[0].checked = true;
+                  }
+                }
+              }
+            }
+          }
+          if (element.checked === true) {
+            last_click_data = row_index;
+          }
         }
       }
 
@@ -369,15 +386,15 @@
             if (active_search >= 0 && active_search <= 4) {
               post_data(`DELETE FROM ${db_tables[active_search]} WHERE ID = '${rows[i].children[1].innerText}'`);
             } else if (active_search === 5) {
-              post_data(`DELETE FROM StudentCourse WHERE StudentID = '${rows[i].children[1].innerText}' AND CourseID = '${rows[i].children[2].innerText}'`);
+              post_data(`DELETE FROM StudentCourse WHERE StudentID = '${rows[i].children[1].innerText}' AND CourseID = ${rows[i].children[2].innerText}`);
             } else if (active_search === 6) {
-              post_data(`DELETE FROM StudentCCA WHERE StudentID = '${rows[i].children[1].innerText}' AND CCAID = '${rows[i].children[2].innerText}'`);
+              post_data(`DELETE FROM StudentCCA WHERE StudentID = '${rows[i].children[1].innerText}' AND CCAID = ${rows[i].children[2].innerText}`);
             } else if (active_search === 7) {
-              post_data(`DELETE FROM TeacherCourse WHERE TeacherID = '${rows[i].children[1].innerText}' AND CourseID = '${rows[i].children[2].innerText}'`);
+              post_data(`DELETE FROM TeacherCourse WHERE TeacherID = '${rows[i].children[1].innerText}' AND CourseID = ${rows[i].children[2].innerText}`);
             } else if (active_search === 8) {
-              post_data(`DELETE FROM CourseSession WHERE CourseID = '${rows[i].children[1].innerText}' AND Day = '${rows[i].children[2].innerText}' AND StartTime = '${rows[i].children[3].innerText}'`);
+              post_data(`DELETE FROM CourseSession WHERE CourseID = ${rows[i].children[1].innerText} AND Day = '${rows[i].children[2].innerText}' AND StartTime = '${rows[i].children[3].innerText}'`);
             } else {
-              post_data(`DELETE FROM CCASession WHERE CCAID = '${rows[i].children[1].innerText}' AND Day = '${rows[i].children[2].innerText}' AND StartTime = '${rows[i].children[3].innerText}'`);
+              post_data(`DELETE FROM CCASession WHERE CCAID = ${rows[i].children[1].innerText} AND Day = '${rows[i].children[2].innerText}' AND StartTime = '${rows[i].children[3].innerText}'`);
             }
             rows[i].remove();
           }
@@ -735,7 +752,34 @@
       }
 
       function edit_data() {
-        var a;
+        var data = document.getElementById("edit_data_modal").getElementsByClassName("form-control");
+        var row = Array.from(document.getElementsByClassName("search_group_table")[active_search].getElementsByClassName("table_data_row")[edit_row].children).splice(1, data.length);
+        console.log(data);
+        if (active_search === 0) {
+            post_data(`UPDATE Student SET ID = '${data[0].value}', Name = '${data[1].value}', ClassID = ${data[2].value} WHERE ID = '${row[0].innerText}'`);
+          } else if (active_search === 1) {
+            post_data(`UPDATE Teacher SET ID = '${data[0].value}', Name = '${data[1].value}', ClassID = ${data[2].value} WHERE ID = '${row[0].innerText}'`);
+          } else if (active_search === 2) {
+            post_data(`UPDATE Class SET ID = ${data[0].value}, Name = '${data[1].value}' WHERE ID = ${row[0].innerText}`);
+          } else if (active_search === 3) {
+            post_data(`UPDATE Course SET ID = ${data[0].value}, Name = '${data[1].value}' WHERE ID = ${row[0].innerText}`);
+          } else if (active_search === 4) {
+            post_data(`UPDATE CCA SET ID = ${data[0].value}, Name = '${data[1].value}' WHERE ID = ${row[0].innerText}`);
+          } else if (active_search === 5) {
+            post_data(`UPDATE StudentCourse SET StudentID = '${data[0].value}', CourseID = ${data[1].value} WHERE StudentID = '${row[0].innerText}' AND CourseID = ${row[1].innerText}`);
+          } else if (active_search === 6) {
+            post_data(`UPDATE StudentCCA SET StudentID = '${data[0].value}', CCAID = ${data[1].value} WHERE StudentID = '${row[0].innerText}' AND CCAID = ${row[1].innerText}`);
+          } else if (active_search === 7) {
+            post_data(`UPDATE TeacherCourse SET TeacherID = '${data[0].value}', CourseID = ${data[1].value} WHERE TeacherID = '${row[0].innerText}' AND CourseID = ${row[1].innerText}`);
+          } else if (active_search === 8) {
+            post_data(`UPDATE CourseSession SET CourseID = ${data[0].value}, Day = '${data[1].value}', StartTime = '${data[2].value}', EndTime = '${data[3].value}' WHERE CourseID = ${row[0].innerText} AND Day = '${row[1].innerText}' AND StartTime = '${row[2].innerText}'`);
+          } else {
+            post_data(`UPDATE CCASession SET CCAID = ${data[0].value}, Day = '${data[1].value}', StartTime = '${data[2].value}', EndTime = '${data[3].value}' WHERE CCAID = ${row[0].innerText} AND Day = '${row[1].innerText}' AND StartTime = '${row[2].innerText}'`);
+          }
+        for (let i = 0; i < data.length; i++) {
+          row[i].innerText = data[i].value;
+        }
+        modal.hide();
       }
 
       async function live_search() {
@@ -806,13 +850,10 @@
             cell.appendChild(checkbox);
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][0];
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][1];
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][2];
             cell = row.insertCell(-1);
             img = document.createElement("img");
@@ -841,10 +882,8 @@
             cell.appendChild(checkbox);
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][0];
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][1];
             cell = row.insertCell(-1);
             img = document.createElement("img");
@@ -873,10 +912,8 @@
             cell.appendChild(checkbox);
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][0];
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][1];
             cell = row.insertCell(-1);
             img = document.createElement("img");
@@ -905,10 +942,8 @@
             cell.appendChild(checkbox);
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][0];
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][1];
             cell = row.insertCell(-1);
             img = document.createElement("img");
@@ -937,10 +972,8 @@
             cell.appendChild(checkbox);
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][0];
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][1];
             cell = row.insertCell(-1);
             img = document.createElement("img");
@@ -969,10 +1002,8 @@
             cell.appendChild(checkbox);
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][0];
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][1];
             cell = row.insertCell(-1);
             img = document.createElement("img");
@@ -1001,10 +1032,8 @@
             cell.appendChild(checkbox);
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][0];
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][1];
             cell = row.insertCell(-1);
             img = document.createElement("img");
@@ -1035,16 +1064,12 @@
             cell.appendChild(checkbox);
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][0];
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][1];
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][2];
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][3];
             cell = row.insertCell(-1);
             img = document.createElement("img");
@@ -1075,16 +1100,12 @@
             cell.appendChild(checkbox);
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][0];
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][1];
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][2];
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
             cell.innerText = result[i][3];
             cell = row.insertCell(-1);
             img = document.createElement("img");
@@ -1107,7 +1128,11 @@
         if (active_add === 0) {
           post_data(`INSERT INTO Student VALUES ('${sibs[0].value.toUpperCase()}', '${sibs[1].value}', ${sibs[2].value})`);
         } else if (active_add === 1) {
-          post_data(`INSERT INTO Teacher VALUES ('${sibs[0].value.toUpperCase()}', '${sibs[1].value}', ${sibs[2].value})`);
+          if (sibs[2].value === "None") {
+            post_data(`INSERT INTO Teacher(ID, Name) VALUES ('${sibs[0].value.toUpperCase()}', '${sibs[1].value}')`);
+          } else {
+            post_data(`INSERT INTO Teacher VALUES ('${sibs[0].value.toUpperCase()}', '${sibs[1].value}', ${sibs[2].value})`);
+          }
         } else if (active_add === 2) {
           post_data(`INSERT INTO Class VALUES ((SELECT COUNT(ID) %2B 1 FROM Class), '${sibs[0].value}')`);
         } else if (active_add === 3) {
@@ -1245,7 +1270,6 @@
           <input id="class_name_t" class="m-2 form-control" list="class_list" placeholder="Enter Class Name" onclick="this.select();" style="width: 30em;" autocomplete="off">
           <input id="course_name_t" class="m-2 form-control" list="course_list" placeholder="Enter Course Name" onclick="this.select();" style="width: 30em;" autocomplete="off">
           <input id="student_name_t" class="m-2 form-control" list="" placeholder="Enter Student Name" onclick="this.select();" style="width: 30em;" autocomplete="off">
-          <input id="cca_name_t" class="m-2 form-control" list="cca_list" placeholder="Enter CCA Name" onclick="this.select();" style="width: 30em;" autocomplete="off">
           <div style="font-size: 0;">
             <div style="display: inline-block; width: 50%; text-align: left;">
               <input type="submit" class="btn btn-secondary m-2" value="Add Teachers" onclick="add_teachers()">
@@ -1306,7 +1330,7 @@
             <div class="add_group" hidden>
               <input class="m-2 form-control" placeholder="Enter Teacher ID" style="width: 30em;" onclick="this.select();" onchange="check_add()">
               <input class="m-2 form-control" placeholder="Enter Teacher Name" style="width: 30em;" onclick="this.select();" onchange="check_add()">
-              <input list="class_list_id" class="m-2 form-control" placeholder="Enter Class ID" style="width: 30em;" onclick="this.select();" onchange="check_add()">
+              <input list="class_list_id_n" class="m-2 form-control" placeholder="Enter Class ID" style="width: 30em;" onclick="this.select();" onchange="check_add()">
             </div>
             <div class="add_group" hidden>
               <input class="m-2 form-control" placeholder="Enter Class Name" style="width: 30em;" onclick="this.select();" onchange="check_add()">
@@ -1353,7 +1377,7 @@
               <input class="m-2 form-control" placeholder="Enter Time" style="width: 30em;" onclick="this.select();" onchange="check_add()">
               <input class="m-2 form-control" placeholder="Enter End Time" style="width: 30em;" onclick="this.select();" onchange="check_add()">
             </div>
-            <input type="button" id="record_add" class="btn btn-primary" value="Add Record" onclick="add_record_modal()" disabled>
+            <input type="button" id="record_add" class="m-2 btn btn-primary" value="Add Record" onclick="add_record_modal()" disabled>
           </div>
         </div>
         <div class="tab-pane fade" id="search" role="tabpanel" aria-labelledby="search-tab">
@@ -1554,7 +1578,7 @@
         </div>
       {% endif %}
       {% if auth > 0 %}
-        <div class="tab-pane fade" id="restore" role="tabpanel" aria-labelledby="restore-tab">
+        <div class="tab-pane fade center" id="restore" role="tabpanel" aria-labelledby="restore-tab">
           <input type="button" id="restore_school" class="btn btn-primary" value="Restore School" onclick="backup()">
           {% if auth == 2 %}
             <input type="button" id="restore_account" class="btn btn-primary" value="Restore Account" onclick="backup('Account')">
@@ -1728,6 +1752,12 @@
       {% for i in data_ids[2]|sort(attribute=0) %}
         <option value="{{ i[0] }}"></option>
       {% endfor %}
+    </datalist>
+    <datalist id="class_list_id_n">
+      {% for i in data_ids[2]|sort(attribute=0) %}
+        <option value="{{ i[0] }}"></option>
+      {% endfor %}
+      <option value="None"></option>
     </datalist>
     <datalist id="course_list_id">
       {% for i in data_ids[3]|sort(attribute=0) %}
