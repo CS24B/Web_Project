@@ -25,10 +25,14 @@ def clash():
             if inters(ses1, ses2):
                 print(teach[0], list(con.execute(f"SELECT Name FROM Teacher WHERE ID = '{teach[0]}'"))[0][0], i[0], list(con.execute(f"SELECT Name FROM Course WHERE ID = '{i[0]}'"))[0][0], i[1], list(con.execute(f"SELECT Name FROM Course WHERE ID = '{i[1]}'"))[0][0])
 
-def add_t(a,b):
-    return (a//100+b//60)*100+(a%100+b%60)//60*100+(a%100+b%60)%60
-
 def gen_ic(sg, year):
+    """
+    Returns a random NRIC/FIN number
+    sg : bool
+        Whether or not the person is a Singaporean
+    year : int 
+        Year of birth of the person
+    """
     tot = 0
     if sg:
         if year < 2000:
