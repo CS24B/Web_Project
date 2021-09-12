@@ -178,6 +178,7 @@ def post_data():
     db = "School" if not request.args.get("db") else request.args.get("db")
     cmd = request.args.get("cmd")
     resp = update_data(cmd, db=db)
+    print(cmd, resp)
     return resp
 
 @app.route("/backup", methods=['GET','POST'])

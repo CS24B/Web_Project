@@ -53,6 +53,13 @@ input[type='checkbox']:hover {
     cursor: pointer;
 }
 
+.center {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
 .availability_scroll_table {
     overflow: scroll;
     height: 450px;
