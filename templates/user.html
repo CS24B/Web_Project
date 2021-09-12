@@ -16,6 +16,7 @@
       var tab = 0;
       var modal;
       var last_click = -1;
+      var edit_row;
       var disabled_keys = [];
       var modal_vis = false;
       var active_add = 0;
@@ -43,13 +44,13 @@
       }
 
       async function get_data(cmd, db="School") {
-        const response = await fetch(`/getdata?db=${db}&cmd=${cmd}`);
+        const response = await fetch(`/getdata?db=${encodeURIComponent(db)}&cmd=${encodeURIComponent(cmd)}`);
         const json = await response.json();
         return json;
       }
 
       function post_data(cmd, db="School") {
-        fetch(`/postdata?db=${db}&cmd=${cmd}`, {method: "POST"});
+        fetch(`/postdata?db=${encodeURIComponent(db)}&cmd=${encodeURIComponent(cmd)}`, {method: "POST"});
       }
 
       async function add_students() {
@@ -80,14 +81,14 @@
             input = document.createElement("input");
             input.type = "hidden";
             input.name = "st";
-            input.value = student_data[i][0];
+            input.setAttribute("value", student_data[i][0]);
             container.appendChild(input);
             table_students.push(students[i]);
             row = table.insertRow(-1);
             row.classList.add("table_data_row");
             for (let j = 0; j < 3; j++) {
               cell = row.insertCell(-1);
-              cell.innerHTML = student_data[i][j];
+              cell.innerText = student_data[i][j];
             }
             cell = row.insertCell(-1);
             img = document.createElement("img");
@@ -96,7 +97,7 @@
             img.className = "select_icon";
             img.onclick = function() {
               data_row = this.parentElement.parentElement;
-              table_students.pop(table_students.indexOf(data_row.getElementsByTagName("td")[0].innerHTML));
+              table_students.pop(table_students.indexOf(data_row.getElementsByTagName("td")[0].innerText));
               data_row.remove();
             }
             cell.appendChild(img);
@@ -149,14 +150,14 @@
             input = document.createElement("input");
             input.type = "hidden";
             input.name = "tc";
-            input.value = teacher_data[i][0];
+            input.setAttribute("value", teacher_data[i][0]);
             container.appendChild(input);
             table_teachers.push(teacher_data[i][0]);
             row = table.insertRow(-1);
             row.classList.add("table_data_row");
             for (let j = 0; j < 2; j++) {
               cell = row.insertCell(-1);
-              cell.innerHTML = teacher_data[i][j];
+              cell.innerText = teacher_data[i][j];
             }
             cell = row.insertCell(-1);
             img = document.createElement("img");
@@ -165,7 +166,7 @@
             img.className = "select_icon";
             img.onclick = function() {
               data_row = this.parentElement.parentElement;
-              table_teachers.pop(table_teachers.indexOf(data_row.getElementsByTagName("td")[0].innerHTML));
+              table_teachers.pop(table_teachers.indexOf(data_row.getElementsByTagName("td")[0].innerText));
               data_row.remove();
             }
             cell.appendChild(img);
@@ -187,33 +188,6 @@
         document.getElementById("cca_name_t").value = "";
         while (container.hasChildNodes()) {
           container.removeChild(container.lastChild);
-        }
-      }
-
-      function table_nav(e, element) {
-        if ([13, 38, 40].includes(e.keyCode)) {
-          e.preventDefault();
-          if (element.cellIndex === 1) {
-            var table = element.parentNode.parentNode;
-            for (let i = 0; i < table.children.length; i++) {
-              if (element.innerHTML === table.children[i].children[1].innerHTML && element.parentNode.rowIndex !== i) {
-                element.innerHTML = content;
-              }
-            }
-          }
-        }
-        if (e.keyCode === 13 || e.keyCode === 40) {
-          if (element.parentNode.nextElementSibling === null) {
-            element.blur();
-          } else {
-            element.parentNode.nextElementSibling.children[element.cellIndex].focus();
-          }
-        } else if (e.keyCode === 38) {
-          if (element.parentNode.rowIndex === 1) {
-            element.blur();
-          } else {
-            element.parentNode.previousElementSibling.children[element.cellIndex].focus();
-          }
         }
       }
 
@@ -282,14 +256,61 @@
         modal.hide();
       }
 
+      function edit_account_modal(element) {
+        var row = element.parentNode.parentNode;
+        var uname = row.children[1].innerText;
+        var pwd = row.children[2].innerText;
+        var unames = Array.from(row.parentNode.children).map(x => x.children[1].innerText).splice(1);
+        edit_row = unames.indexOf(uname);
+        modal = new bootstrap.Modal(document.getElementById("edit_account_modal"));
+        document.getElementById("edit_account_modal").getElementsByClassName("form-control")[0].setAttribute("value", uname);
+        document.getElementById("edit_account_modal").getElementsByClassName("form-control")[1].setAttribute("value", pwd);
+        modal.show();
+      }
+
+      function check_edit_account() {
+        var rows = document.getElementById("account_table").getElementsByClassName("table_data_row");
+        var unames = Array.from(rows).map(x => x.children[1].innerText);
+        var data = document.getElementById("edit_account_modal").getElementsByClassName("form-control");
+        var index = unames.indexOf(data[0].value);
+        document.getElementById("edit_account_modal").getElementsByClassName("btn-primary")[0].disabled = false;
+        if (index >= 0 && index !== edit_row) {
+          document.getElementById("edit_account_modal").getElementsByClassName("btn btn-primary")[0].disabled = true;
+        }
+        if (data[0].value === "" || data[1].value === "") {
+          document.getElementById("edit_account_modal").getElementsByClassName("btn btn-primary")[0].disabled = true;
+        }
+      }
+
+      function edit_account() {
+        var data = document.getElementById("edit_account_modal").getElementsByClassName("form-control");
+        var row = document.getElementById("account_table").getElementsByClassName("table_data_row")[edit_row];
+        row.children[1].innerText = data[0].value;
+        row.children[2].innerText = data[1].value;
+        modal.hide();
+      }
+
       function add_account_modal() {
         modal = new bootstrap.Modal(document.getElementById("add_account_modal"));
         modal.show();
       }
 
+      async function check_add_account() {
+        var inputs = document.getElementById("add_account_modal").getElementsByClassName("form-control");
+        var accs = await get_data("SELECT Username FROM Account", "Account");
+
+        document.getElementById("add_account_modal").getElementsByClassName("btn-primary")[0].disabled = false;
+        if (inputs[0].value === "" || inputs[1].value === "") {
+          document.getElementById("add_account_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+        }
+        if (accs.map(x => x[0]).includes(inputs[0].value)) {
+          document.getElementById("add_account_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+        }
+      }
+
       function add_account(val) {
         table = document.getElementById("account_table");
-        if (Array.from(table.children[0].getElementsByClassName("table_data_row")).map(x => x.children[1].innerHTML).includes(val[0].value)) {
+        if (Array.from(table.children[0].getElementsByClassName("table_data_row")).map(x => x.children[1].innerText).includes(val[0].value)) {
           return false;
         }
         var row = table.insertRow(-1);
@@ -304,17 +325,18 @@
         checkbox.setAttribute("onclick", "del_checked(event, this)");
         cell.appendChild(checkbox);
         cell = row.insertCell(-1);
-        cell.setAttribute("contenteditable", true);
-        cell.setAttribute("onkeydown", "table_nav(event, this)");
-        cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-        cell.innerHTML = val[0].value;
+        cell.innerText = val[0].value;
         cell = row.insertCell(-1);
-        cell.setAttribute("contenteditable", true);
-        cell.setAttribute("onkeydown", "table_nav(event, this)");
-        cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-        cell.innerHTML = val[1].value;
+        cell.innerText = val[1].value;
         cell = row.insertCell(-1);
-        cell.innerHTML = "1";
+        cell.innerText = "1";
+        cell = row.insertCell(-1);
+        var img = document.createElement("img");
+        img.src = "../static/img/edit.png";
+        img.alt = "edit";
+        img.className = "select_icon";
+        img.setAttribute("onclick", "edit_account_modal(this)");
+        cell.appendChild(img);
         modal.hide();
       }
 
@@ -323,10 +345,10 @@
         modal.show();
       }
 
-      function save_accounts() {
-        var rows = document.getElementById("account_table").children[0].getElementsByClassName("table_data_row");
-        var accounts = Array.from(rows).map(x => [x.children[1].innerHTML, x.children[2].innerHTML, x.children[3].innerHTML]);
-        post_data("DELETE FROM Account", "Account");
+      async function save_accounts() {
+        var rows = document.getElementById("account_table").getElementsByClassName("table_data_row");
+        var accounts = Array.from(rows).map(x => [x.children[1].innerText, x.children[2].innerText, x.children[3].innerText]);
+        await post_data("DELETE FROM Account", "Account");
         for (let i = 0; i < accounts.length; i++) {
           post_data(`INSERT INTO Account VALUES ('${accounts[i][0]}', '${accounts[i][1]}', ${parseInt(accounts[i][2])})`, "Account");
         }
@@ -345,17 +367,17 @@
         for (let i = rows.length - 1; i >= 0; i--) {
           if (rows[i].children[0].children[0].checked) {
             if (active_search >= 0 && active_search <= 4) {
-              post_data(`DELETE FROM ${db_tables[active_search]} WHERE ID = '${rows[i].children[1].innerHTML}'`);
+              post_data(`DELETE FROM ${db_tables[active_search]} WHERE ID = '${rows[i].children[1].innerText}'`);
             } else if (active_search === 5) {
-              post_data(`DELETE FROM StudentCourse WHERE StudentID = '${rows[i].children[1].innerHTML}' AND CourseID = '${rows[i].children[2].innerHTML}'`);
+              post_data(`DELETE FROM StudentCourse WHERE StudentID = '${rows[i].children[1].innerText}' AND CourseID = '${rows[i].children[2].innerText}'`);
             } else if (active_search === 6) {
-              post_data(`DELETE FROM StudentCCA WHERE StudentID = '${rows[i].children[1].innerHTML}' AND CCAID = '${rows[i].children[2].innerHTML}'`);
+              post_data(`DELETE FROM StudentCCA WHERE StudentID = '${rows[i].children[1].innerText}' AND CCAID = '${rows[i].children[2].innerText}'`);
             } else if (active_search === 7) {
-              post_data(`DELETE FROM TeacherCourse WHERE TeacherID = '${rows[i].children[1].innerHTML}' AND CourseID = '${rows[i].children[2].innerHTML}'`);
+              post_data(`DELETE FROM TeacherCourse WHERE TeacherID = '${rows[i].children[1].innerText}' AND CourseID = '${rows[i].children[2].innerText}'`);
             } else if (active_search === 8) {
-              post_data(`DELETE FROM CourseSession WHERE CourseID = '${rows[i].children[1].innerHTML}' AND Day = '${rows[i].children[2].innerHTML}' AND StartTime = '${rows[i].children[3].innerHTML}'`);
+              post_data(`DELETE FROM CourseSession WHERE CourseID = '${rows[i].children[1].innerText}' AND Day = '${rows[i].children[2].innerText}' AND StartTime = '${rows[i].children[3].innerText}'`);
             } else {
-              post_data(`DELETE FROM CCASession WHERE CCAID = '${rows[i].children[1].innerHTML}' AND Day = '${rows[i].children[2].innerHTML}' AND StartTime = '${rows[i].children[3].innerHTML}'`);
+              post_data(`DELETE FROM CCASession WHERE CCAID = '${rows[i].children[1].innerText}' AND Day = '${rows[i].children[2].innerText}' AND StartTime = '${rows[i].children[3].innerText}'`);
             }
             rows[i].remove();
           }
@@ -406,7 +428,6 @@
           add_group[9].hidden = false;
           active_add = 9;
         }
-
         check_add();
       }
 
@@ -447,7 +468,6 @@
           search_group[9].hidden = false;
           active_search = 9;
         }
-
         // check_search();
       }
 
@@ -531,6 +551,193 @@
         return true;
       }
 
+      function check_ic_2(ic) {
+        var tot;
+        var check;
+        
+        if (ic.length !== 9) {
+          return false;
+        }
+        if (ic[0].toUpperCase() === "S" && (ic.slice(1,3) >= 68 && ic.slice(1,3) <= 99 || ic[1] == 0 || ic[1] == 1)) {
+          tot = ic[1]*2 + ic[2]*7 + ic[3]*6 + ic[4]*5 + ic[5]*4 + ic[6]*3 + ic[7]*2
+          check = ["J", "Z", "I", "H", "G", "F", "E", "D", "C", "B", "A"]
+        } else if (ic[0].toUpperCase() === "F") {
+          tot = ic[1]*2 + ic[2]*7 + ic[3]*6 + ic[4]*5 + ic[5]*4 + ic[6]*3 + ic[7]*2
+          check = ["X", "W", "U", "T", "R", "Q", "P", "N", "M", "L", "K"]
+        } else if (ic[0].toUpperCase() === "T" && ic.slice(1,3) >= 0) {
+          tot = ic[1]*2 + ic[2]*7 + ic[3]*6 + ic[4]*5 + ic[5]*4 + ic[6]*3 + ic[7]*2 + 4
+          check = ["J", "Z", "I", "H", "G", "F", "E", "D", "C", "B", "A"]
+        } else if (ic[0].toUpperCase() === "G") {
+          tot = ic[1]*2 + ic[2]*7 + ic[3]*6 + ic[4]*5 + ic[5]*4 + ic[6]*3 + ic[7]*2 + 4
+          check = ["X", "W", "U", "T", "R", "Q", "P", "N", "M", "L", "K"]
+        } else {
+          return false;
+        }
+        if (ic[8].toUpperCase() !== check[tot % 11]) {
+          return false;
+        }
+        return true;
+      }
+
+      function edit_data_modal(element) {
+        var row = element.parentNode.parentNode;
+        var data = Array.from(row.children).splice(1, row.children.length - 2).map(x => x.innerText);
+        var records = Array.from(row.parentNode.children).splice(1).map(x => Array.from(x.children).map(y => y.innerText).splice(1, x.children.length - 2));
+        var mod_bod = document.getElementById("edit_data_modal").getElementsByClassName("modal-body")[0];
+        var inputs = mod_bod.children;
+        var input;
+        while (inputs.length > 0) {
+          inputs[0].remove();
+        }
+        for (let i = 0; i < records.length; i++) {
+          if (JSON.stringify(records[i]) === JSON.stringify(data)) {
+            edit_row = i;
+          }
+        }
+        modal = new bootstrap.Modal(document.getElementById("edit_data_modal"));
+        for (let i = 0; i < data.length; i++) {
+          input = document.createElement("input");
+          input.className = "form-control";
+          input.setAttribute("value", data[i]);
+          input.setAttribute("onchange", "check_edit_data()");
+          mod_bod.appendChild(input);
+        }
+        modal.show();
+      }
+
+      async function check_edit_data() {
+        var rows = document.getElementsByClassName("search_group_table")[active_search].getElementsByClassName("table_data_row");
+        var table_ids;
+        var table_ids2;
+        var table_ids3;
+        var ids;
+        var ids2;
+        var data = document.getElementById("edit_data_modal").getElementsByClassName("form-control");
+        var classes = Array.from(document.getElementById("class_list_id").children).map(x => x.value);
+        var regex=/^[0-9]+$/;
+        classes.push("");
+
+        document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = false;
+        if ([0, 1, 2, 3, 4].includes(active_search)) {
+          table_ids = Array.from(rows).map(x => x.children[1].innerText);
+          ids = await get_data(`SELECT ID FROM ${db_tables[active_search]}`);
+          if (ids.map(x => x[0].toString()).includes(data[0].value) && table_ids[edit_row] !== data[0].value) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          if ([2, 3, 4].includes(active_search) && !(Number.isInteger(parseFloat(data[0].value)) && parseInt(data[0].value) > 0)) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          if (data[0].value === "" || data[1].value === "" || (active_search === 0 && data[2].value === "")) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          if ([0, 1].includes(active_search) && !((await check_ic(data[0].value) || table_ids[edit_row] === data[0].value) && classes.includes(data[2].value))) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+        } else if (active_search === 5) {
+          table_ids = Array.from(rows).map(x => x.children[1].innerText);
+          table_ids2 = Array.from(rows).map(x => x.children[2].innerText);
+          ids = await get_data(`SELECT * FROM StudentCourse`);
+          if (ids.filter(x => x[0] === data[0].value).map(x => x[1].toString()).includes(data[1].value) && (table_ids[edit_row] !== data[0].value || table_ids2[edit_row] !== data[1].value)) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          if (!(check_ic_2(data[0].value))) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          if (data[0].value === "" || data[1].value === "") {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          ids = await get_data(`SELECT ID FROM Student`);
+          ids2 = await get_data(`SELECT ID FROM Course`);
+          if (!(ids.map(x => x[0]).includes(data[0].value) && ids2.map(x => x[0]).includes(parseInt(data[1].value)))) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+        } else if (active_search === 6) {
+          table_ids = Array.from(rows).map(x => x.children[1].innerText);
+          table_ids2 = Array.from(rows).map(x => x.children[2].innerText);
+          ids = await get_data(`SELECT * FROM StudentCCA`);
+          if (ids.filter(x => x[0] === data[0].value).map(x => x[1].toString()).includes(data[1].value) && (table_ids[edit_row] !== data[0].value || table_ids2[edit_row] !== data[1].value)) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          if (!(check_ic_2(data[0].value))) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          if (data[0].value === "" || data[1].value === "") {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          ids = await get_data(`SELECT ID FROM Student`);
+          ids2 = await get_data(`SELECT ID FROM CCA`);
+          if (!(ids.map(x => x[0]).includes(data[0].value) && ids2.map(x => x[0]).includes(parseInt(data[1].value)))) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+        } else if (active_search === 7) {
+          table_ids = Array.from(rows).map(x => x.children[1].innerText);
+          table_ids2 = Array.from(rows).map(x => x.children[2].innerText);
+          ids = await get_data(`SELECT * FROM TeacherCourse`);
+          if (ids.filter(x => x[0] === data[0].value).map(x => x[1].toString()).includes(data[1].value) && (table_ids[edit_row] !== data[0].value || table_ids2[edit_row] !== data[1].value)) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          if (!(check_ic_2(data[0].value))) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          if (data[0].value === "" || data[1].value === "") {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          ids = await get_data(`SELECT ID FROM Teacher`);
+          ids2 = await get_data(`SELECT ID FROM Course`);
+          if (!(ids.map(x => x[0]).includes(data[0].value) && ids2.map(x => x[0]).includes(parseInt(data[1].value)))) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+        } else if (active_search === 8) {
+          table_ids = Array.from(rows).map(x => x.children[1].innerText);
+          table_ids2 = Array.from(rows).map(x => x.children[2].innerText);
+          table_ids3 = Array.from(rows).map(x => x.children[3].innerText);
+          ids = await get_data(`SELECT * FROM CourseSession`);
+          if (ids.filter(x => x[0] === parseInt(data[0].value)).filter(x => x[1] === data[1].value).filter(x => parseInt(x[2]) === parseInt(data[2].value)).length > 0 && (table_ids[edit_row] !== data[0].value || table_ids2[edit_row] !== data[1].value || table_ids3[edit_row] !== data[2].value)) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          if (!(
+            data[2].value.match(regex) && data[2].value <= 1900 && data[2].value >= 800 && [0, 10, 20, 30, 40, 50].includes(data[2].value % 100)
+            && data[3].value.match(regex) && data[3].value <= 1900 && data[3].value >= 800 && [0, 10, 20, 30, 40, 50].includes(data[3].value % 100)
+            && parseInt(data[2].value) < parseInt(data[3].value)
+          )) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          if (data[0].value === "" || data[1].value === "" || data[2].value === "" || data[3].value === "") {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          ids = await get_data(`SELECT ID FROM Course`);
+          if (!(ids.map(x => x[0]).includes(parseInt(data[0].value)) && ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].includes(data[1].value))) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+        } else {
+          table_ids = Array.from(rows).map(x => x.children[1].innerText);
+          table_ids2 = Array.from(rows).map(x => x.children[2].innerText);
+          table_ids3 = Array.from(rows).map(x => x.children[3].innerText);
+          ids = await get_data(`SELECT * FROM CCASession`);
+          if (ids.filter(x => x[0] === parseInt(data[0].value)).filter(x => x[1] === data[1].value).filter(x => parseInt(x[2]) === parseInt(data[2].value)).length > 0 && (table_ids[edit_row] !== data[0].value || table_ids2[edit_row] !== data[1].value || table_ids3[edit_row] !== data[2].value)) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          if (!(
+            data[2].value.match(regex) && data[2].value <= 1900 && data[2].value >= 800 && [0, 10, 20, 30, 40, 50].includes(data[2].value % 100)
+            && data[3].value.match(regex) && data[3].value <= 1900 && data[3].value >= 800 && [0, 10, 20, 30, 40, 50].includes(data[3].value % 100)
+            && parseInt(data[2].value) < parseInt(data[3].value)
+          )) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          if (data[0].value === "" || data[1].value === "" || data[2].value === "" || data[3].value === "") {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+          ids = await get_data(`SELECT ID FROM CCA`);
+          if (!(ids.map(x => x[0]).includes(parseInt(data[0].value)) && ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].includes(data[1].value))) {
+            document.getElementById("edit_data_modal").getElementsByClassName("btn-primary")[0].disabled = true;
+          }
+        }
+      }
+
+      function edit_data() {
+        var a;
+      }
+
       async function live_search() {
         var sibs = document.getElementsByClassName("search_group")[active_search].children;
         var table = document.getElementsByClassName("search_group_table")[active_search];
@@ -540,6 +747,7 @@
         var row;
         var cell;
         var checkbox;
+        var img;
 
         while (rows.length > 0) {
           rows[0].remove();
@@ -565,20 +773,18 @@
             cell.appendChild(checkbox);
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][0];
+            cell.innerText = result[i][0];
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][1];
+            cell.innerText = result[i][1];
             cell = row.insertCell(-1);
-            cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][2];
+            cell.innerText = result[i][2];
+            cell = row.insertCell(-1);
+            img = document.createElement("img");
+            img.src = "../static/img/edit.png";
+            img.alt = "edit";
+            img.className = "select_icon";
+            img.setAttribute("onclick", "edit_data_modal(this)");
+            cell.appendChild(img);
           }
         } else if (active_search == 1) {
           filters.push(await get_data(`SELECT * FROM Teacher WHERE ID IN ('${sibs[0].value}')`));
@@ -601,19 +807,20 @@
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][0];
+            cell.innerText = result[i][0];
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][1];
+            cell.innerText = result[i][1];
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][2];
+            cell.innerText = result[i][2];
+            cell = row.insertCell(-1);
+            img = document.createElement("img");
+            img.src = "../static/img/edit.png";
+            img.alt = "edit";
+            img.className = "select_icon";
+            img.setAttribute("onclick", "edit_data_modal(this)");
+            cell.appendChild(img);
           }
         } else if (active_search == 2) {
           filters.push(await get_data(`SELECT * FROM Class WHERE ID IN (${sibs[0].value})`));
@@ -635,14 +842,17 @@
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][0];
+            cell.innerText = result[i][0];
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][1];
+            cell.innerText = result[i][1];
+            cell = row.insertCell(-1);
+            img = document.createElement("img");
+            img.src = "../static/img/edit.png";
+            img.alt = "edit";
+            img.className = "select_icon";
+            img.setAttribute("onclick", "edit_data_modal(this)");
+            cell.appendChild(img);
           }
         } else if (active_search == 3) {
           filters.push(await get_data(`SELECT * FROM Course WHERE ID IN (${sibs[0].value})`));
@@ -664,14 +874,17 @@
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][0];
+            cell.innerText = result[i][0];
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][1];
+            cell.innerText = result[i][1];
+            cell = row.insertCell(-1);
+            img = document.createElement("img");
+            img.src = "../static/img/edit.png";
+            img.alt = "edit";
+            img.className = "select_icon";
+            img.setAttribute("onclick", "edit_data_modal(this)");
+            cell.appendChild(img);
           }
         } else if (active_search == 4) {
           filters.push(await get_data(`SELECT * FROM CCA WHERE ID IN (${sibs[0].value})`));
@@ -693,14 +906,17 @@
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][0];
+            cell.innerText = result[i][0];
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][1];
+            cell.innerText = result[i][1];
+            cell = row.insertCell(-1);
+            img = document.createElement("img");
+            img.src = "../static/img/edit.png";
+            img.alt = "edit";
+            img.className = "select_icon";
+            img.setAttribute("onclick", "edit_data_modal(this)");
+            cell.appendChild(img);
           }
         } else if (active_search == 5) {
           filters.push(await get_data(`SELECT * FROM StudentCourse WHERE StudentID IN ('${sibs[0].value}')`));
@@ -722,14 +938,17 @@
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][0];
+            cell.innerText = result[i][0];
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][1];
+            cell.innerText = result[i][1];
+            cell = row.insertCell(-1);
+            img = document.createElement("img");
+            img.src = "../static/img/edit.png";
+            img.alt = "edit";
+            img.className = "select_icon";
+            img.setAttribute("onclick", "edit_data_modal(this)");
+            cell.appendChild(img);
           }
         } else if (active_search == 6) {
           filters.push(await get_data(`SELECT * FROM StudentCCA WHERE StudentID IN ('${sibs[0].value}')`));
@@ -751,14 +970,17 @@
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][0];
+            cell.innerText = result[i][0];
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][1];
+            cell.innerText = result[i][1];
+            cell = row.insertCell(-1);
+            img = document.createElement("img");
+            img.src = "../static/img/edit.png";
+            img.alt = "edit";
+            img.className = "select_icon";
+            img.setAttribute("onclick", "edit_data_modal(this)");
+            cell.appendChild(img);
           }
         } else if (active_search == 7) {
           filters.push(await get_data(`SELECT * FROM TeacherCourse WHERE TeacherID IN ('${sibs[0].value}')`));
@@ -780,14 +1002,17 @@
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][0];
+            cell.innerText = result[i][0];
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][1];
+            cell.innerText = result[i][1];
+            cell = row.insertCell(-1);
+            img = document.createElement("img");
+            img.src = "../static/img/edit.png";
+            img.alt = "edit";
+            img.className = "select_icon";
+            img.setAttribute("onclick", "edit_data_modal(this)");
+            cell.appendChild(img);
           }
         } else if (active_search == 8) {
           filters.push(await get_data(`SELECT * FROM CourseSession WHERE CourseID IN (${sibs[0].value})`));
@@ -811,24 +1036,23 @@
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][0];
+            cell.innerText = result[i][0];
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][1];
+            cell.innerText = result[i][1];
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][2];
+            cell.innerText = result[i][2];
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][3];
+            cell.innerText = result[i][3];
+            cell = row.insertCell(-1);
+            img = document.createElement("img");
+            img.src = "../static/img/edit.png";
+            img.alt = "edit";
+            img.className = "select_icon";
+            img.setAttribute("onclick", "edit_data_modal(this)");
+            cell.appendChild(img);
           }
         } else {
           filters.push(await get_data(`SELECT * FROM CCASession WHERE CCAID IN (${sibs[0].value})`));
@@ -852,24 +1076,23 @@
             cell.style = "text-align: center; width: 150px;"
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][0];
+            cell.innerText = result[i][0];
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][1];
+            cell.innerText = result[i][1];
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][2];
+            cell.innerText = result[i][2];
             cell = row.insertCell(-1);
             cell.setAttribute("contenteditable", true);
-            // cell.setAttribute("onkeydown", "table_nav(event, this)");
-            // cell.setAttribute("onfocus", "change_content(this.innerHTML)");
-            cell.innerHTML = result[i][3];
+            cell.innerText = result[i][3];
+            cell = row.insertCell(-1);
+            img = document.createElement("img");
+            img.src = "../static/img/edit.png";
+            img.alt = "edit";
+            img.className = "select_icon";
+            img.setAttribute("onclick", "edit_data_modal(this)");
+            cell.appendChild(img);
           }
         }
       }
@@ -1318,10 +1541,10 @@
                   {% else %}
                     <td width="150px"></td>
                   {% endif %}
-                  <td contenteditable="true" onkeydown="table_nav(event, this)" onfocus="change_content(this.innerHTML)">{{ i[0] }}</td>
-                  <td contenteditable="true" onkeydown="table_nav(event, this)" onfocus="change_content(this.innerHTML)">{{ i[1] }}</td>
+                  <td>{{ i[0] }}</td>
+                  <td>{{ i[1] }}</td>
                   <td>{{ i[2] }}</td>
-                  <td><img src="../static/img/edit.png" alt="edit" class="select_icon" onclick=()></td>
+                  <td><img src="../static/img/edit.png" alt="edit" class="select_icon" onclick="edit_account_modal(this)"></td>
                 </tr>
               {% endfor %}
             </table>
@@ -1357,6 +1580,25 @@
         </div>
       </div>
     </div>
+    <div class="modal" id="edit_account_modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <input class="form-control" value="" placeholder="Enter username" onchange="check_edit_account(this)">
+            <input class="form-control" value="" placeholder="Enter password" onchange="check_edit_account(this)">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" onclick="edit_account()">Edit</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="modal" id="add_account_modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -1366,12 +1608,12 @@
             </button>
           </div>
           <div class="modal-body">
-            <input class="form-control" placeholder="Enter username" required>
-            <input class="form-control" placeholder="Enter password" required>
+            <input class="form-control" placeholder="Enter username" onchange="check_add_account()">
+            <input class="form-control" placeholder="Enter password" onchange="check_add_account()">
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-primary" onclick="add_account(this.parentNode.previousElementSibling.children)">Add</button>
+            <button type="button" class="btn btn-primary" onclick="add_account(this.parentNode.previousElementSibling.children)" disabled>Add</button>
           </div>
         </div>
       </div>
@@ -1426,6 +1668,23 @@
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             <button type="button" class="btn btn-danger" onclick="delete_data()">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal" id="edit_data_modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" onclick="edit_data()">Edit</button>
           </div>
         </div>
       </div>
