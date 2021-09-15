@@ -6,7 +6,7 @@
     <title>Webapp</title>
     <link rel="stylesheet" href="../static/css/style.css">
     <link rel="shortcut icon" type="image/ico" href="../static/img/favicon.ico">
-    <link href="../static/css/bootstrap.min.css" rel="stylesheet">
+    <!-- <link href="../static/css/bootstrap.css" rel="stylesheet"> -->
     <script src="../static/js/bootstrap.bundle.min.js"></script>
     <script>
 
@@ -755,9 +755,9 @@
         var data = document.getElementById("edit_data_modal").getElementsByClassName("form-control");
         var row = Array.from(document.getElementsByClassName("search_group_table")[active_search].getElementsByClassName("table_data_row")[edit_row].children).splice(1, data.length);
         if (active_search === 0) {
-            post_data(`UPDATE Student SET ID = '${format(data[0].value)}', Name = '${format(data[1].value)}', ClassID = ${format(data[2].value)} WHERE ID = '${format(row[0].innerText)}'`);
+            post_data(`UPDATE Student SET ID = '${format(data[0].value)}', Name = '${format(data[1].value).toUpperCase()}', ClassID = ${format(data[2].value)} WHERE ID = '${format(row[0].innerText)}'`);
           } else if (active_search === 1) {
-            post_data(`UPDATE Teacher SET ID = '${format(data[0].value)}', Name = '${format(data[1].value)}', ClassID = ${format(data[2].value)} WHERE ID = '${format(row[0].innerText)}'`);
+            post_data(`UPDATE Teacher SET ID = '${format(data[0].value)}', Name = '${format(data[1].value).toUpperCase()}', ClassID = ${format(data[2].value)} WHERE ID = '${format(row[0].innerText)}'`);
           } else if (active_search === 2) {
             post_data(`UPDATE Class SET ID = ${format(data[0].value)}, Name = '${format(data[1].value)}' WHERE ID = ${format(row[0].innerText)}`);
           } else if (active_search === 3) {
@@ -791,7 +791,7 @@
         var cell;
         var checkbox;
         var img;
-        
+
         while (rows.length > 0) {
           rows[0].remove();
         }
@@ -1125,12 +1125,12 @@
       function add_record() {
         var sibs = document.getElementById("add_data_form").children[active_add + 1].children;
         if (active_add === 0) {
-          post_data(`INSERT INTO Student VALUES ('${format(sibs[0].value).toUpperCase()}', '${format(sibs[1].value)}', ${format(sibs[2].value)})`);
+          post_data(`INSERT INTO Student VALUES ('${format(sibs[0].value)}', '${format(sibs[1].value).toUpperCase()}', ${format(sibs[2].value)})`);
         } else if (active_add === 1) {
           if (format(sibs[2].value) === "None") {
-            post_data(`INSERT INTO Teacher(ID, Name) VALUES ('${format(sibs[0].value).toUpperCase()}', '${format(sibs[1].value)}')`);
+            post_data(`INSERT INTO Teacher(ID, Name) VALUES ('${format(sibs[0].value)}', '${format(sibs[1].value).toUpperCase()}')`);
           } else {
-            post_data(`INSERT INTO Teacher VALUES ('${format(sibs[0].value).toUpperCase()}', '${format(sibs[1].value)}', ${format(sibs[2].value)})`);
+            post_data(`INSERT INTO Teacher VALUES ('${format(sibs[0].value)}', '${format(sibs[1].value).toUpperCase()}', ${format(sibs[2].value)})`);
           }
         } else if (active_add === 2) {
           post_data(`INSERT INTO Class VALUES ((SELECT COUNT(ID) + 1 FROM Class), '${format(sibs[0].value)}')`);
@@ -1595,9 +1595,7 @@
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
+            Delete Account
           </div>
           <div class="modal-body">
             Confirm data deletion?
@@ -1613,9 +1611,7 @@
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
+            Edit Account
           </div>
           <div class="modal-body">
             <input class="form-control" value="" placeholder="Enter username" onchange="check_edit_account(this)">
@@ -1632,9 +1628,7 @@
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
+            Add Account
           </div>
           <div class="modal-body">
             <input class="form-control" placeholder="Enter username" onchange="check_add_account()">
@@ -1651,9 +1645,7 @@
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
+            Save Account(s)
           </div>
           <div class="modal-body">
             Confirm save?
@@ -1669,9 +1661,7 @@
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
+            Add Record
           </div>
           <div class="modal-body" id="custom_add_msg">
             Add record?
@@ -1687,9 +1677,7 @@
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
+            Delete Record(s)
           </div>
           <div class="modal-body">
             Confirm data deletion?
@@ -1705,9 +1693,7 @@
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
+            Edit Record
           </div>
           <div class="modal-body">
           </div>
