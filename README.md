@@ -3,6 +3,10 @@
 It is recommended to view the web application in a Chrome, Safari, or Edge Browser in full screen for the best experience.
 
 
+## Database
+CCASession and TeacherCourse records as well as Student and Teacher IDs are randomly generated.
+
+
 ## Availability Tab
 There are two columns of input boxes. The first column filters for students which will appear in the table below when the *Add Students* button is pressed. Students can be filtered by their name, the name of their PM class, the name of a course they attend, the name of a teacher that teaches any of the courses they attend, and the name of a CCA they attend. 
 
