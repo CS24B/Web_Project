@@ -6,7 +6,6 @@
     <title>Webapp</title>
     <link rel="stylesheet" href="../static/css/style.css">
     <link rel="shortcut icon" type="image/ico" href="../static/img/favicon.ico">
-    <!-- <link href="../static/css/bootstrap.css" rel="stylesheet"> -->
     <script src="../static/js/bootstrap.bundle.min.js"></script>
     <script>
 
@@ -776,7 +775,11 @@
             post_data(`UPDATE CCASession SET CCAID = ${format(data[0].value)}, Day = '${format(data[1].value)}', StartTime = '${format(data[2].value)}', EndTime = '${format(data[3].value)}' WHERE CCAID = ${format(row[0].innerText)} AND Day = '${format(row[1].innerText)}' AND StartTime = '${format(row[2].innerText)}'`);
           }
         for (let i = 0; i < data.length; i++) {
-          row[i].innerText = data[i].value;
+          if ([0, 1].includes(active_search) && i == 1) {
+            row[i].innerText = data[i].value.toUpperCase();
+          } else {
+            row[i].innerText = data[i].value;
+          }
         }
         modal.hide();
       }
@@ -1254,7 +1257,7 @@
       {% endif %}
     </ul>
     <div class="tab-content" id="myTabContent">
-      <div class="tab-pane fade show active" id="availability" role="tabpanel">
+      <div class="tab-pane active" id="availability" role="tabpanel">
         <div style="display: inline-block; width: fit-content;">
           <input id="student_name_s" class="m-2 form-control" list="" placeholder="Enter Student Name" onclick="this.select();" style="width: 30em;" autocomplete="off">
           <input id="class_name_s" class="m-2 form-control" list="class_list" placeholder="Enter Class Name" onclick="this.select();" style="width: 30em;" autocomplete="off">
@@ -1313,7 +1316,7 @@
         </div>
       </div>
       {% if auth > 0 %}
-        <div class="tab-pane fade" id="add" role="tabpanel" aria-labelledby="add-tab">
+        <div class="tab-pane" id="add" role="tabpanel" aria-labelledby="add-tab">
           <div id="add_data_form">
             <select aria-label="tables" class="m-2 form-control" style="width: 30em;" onchange="check_add_table(this)">
               <option value="Student">Student</option>
@@ -1385,7 +1388,7 @@
             <input type="button" id="record_add" class="m-2 btn btn-primary" value="Add Record" onclick="add_record_modal()" disabled>
           </div>
         </div>
-        <div class="tab-pane fade" id="search" role="tabpanel" aria-labelledby="search-tab">
+        <div class="tab-pane" id="search" role="tabpanel" aria-labelledby="search-tab">
           <select aria-label="tables" class="m-2 form-control" style="width: 30em;" onchange="check_search_table(this)">
             <option value="Student">Student</option>
             <option value="Teacher">Teacher</option>
@@ -1553,7 +1556,7 @@
         </div>
       {% endif %}
       {% if auth == 2 %}
-        <div class="tab-pane fade" id="account" role="tabpanel" aria-labelledby="account-tab">
+        <div class="tab-pane" id="account" role="tabpanel" aria-labelledby="account-tab">
           <div class="scroll_table">
             <table id="account_table">
               <tr class="scroll_head">
@@ -1583,7 +1586,7 @@
         </div>
       {% endif %}
       {% if auth > 0 %}
-        <div class="tab-pane fade center" id="restore" role="tabpanel" aria-labelledby="restore-tab">
+        <div class="tab-pane center" id="restore" role="tabpanel" aria-labelledby="restore-tab">
           <input type="button" id="restore_school" class="btn btn-primary" value="Restore School" onclick="backup()">
           {% if auth == 2 %}
             <input type="button" id="restore_account" class="btn btn-primary" value="Restore Account" onclick="backup('Account')">

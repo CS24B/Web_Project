@@ -109,12 +109,6 @@ def restore(db):
             with open("database/School_backup.db", "rb") as g:
                 f.write(g.read())
 
-con = sqlite3.connect("database/School_backup.db")
-with con:
-    l = list(con.execute("SELECT Name FROM Teacher"))
-    for i in l:
-        con.execute(f"UPDATE Teacher SET Name = '{i[0].upper()}' WHERE Name = '{i[0]}'")
-
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
