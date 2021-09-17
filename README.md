@@ -2,6 +2,7 @@
 
 It is recommended to view the web application in a Chrome, Safari, or Edge Browser in full screen for the best experience.
 
+
 ## Availability Tab
 There are two columns of input boxes. The first column filters for students which will appear in the table below when the *Add Students* button is pressed. Students can be filtered by their name, the name of their PM class, the name of a course they attend, the name of a teacher that teaches any of the courses they attend, and the name of a CCA they attend. 
 
@@ -33,7 +34,9 @@ Verification is present for StudentID and TeacherID when adding new students and
 StartTime and EndTime inputs for the Session tables must be valid 24-hour times between 0800 and 1900.
 
 Records may not be added if uniqueness of primary keys or foreign relations are not maintained.
-Search:
+
+
+## Search Tab
 Available after logging in, the first select box indicates the table from which a record should be searched. The other inputs and the table will change depending on its value.
 
 Records are dynamically filtered based on the filters. If multiple filters are applied, only records that pass all filters will be displayed in the table. Filtered records will replace any existing elements in the table. The records can be edited by clicking the edit icon. Any edits must ensure that uniqueness of primary keys and foreign relations are maintained.
@@ -43,7 +46,7 @@ Records can be deleted by selecting the checkboxes for each record and pressing 
 All changes are automatically saved.
 
 
-## Account
+## Account Tab
 Available after logging in with an account with level 2 authorisation, a table with all the account data is present. The username and password of each account can be edited by clicking the edit icon. Any edits must ensure that all usernames remain unique.
 
 Accounts can be deleted by selecting the checkboxes for each account and pressing the “Delete” button that appears or the delete key. Shift click can be used to select multiple accounts. Accounts with level 2 authorisation cannot be deleted in this way.
@@ -53,7 +56,7 @@ Accounts can be added to the database by pressing the *Add Account* button. The 
 All changes are not automatically saved. Refreshing the page will revert all changes that are not saved. The *Save Changes* button must be pressed to save any changes made to the Account database. 
 
 
-## Restore
+## Restore Tab
 Available after logging in, the *Restore School* button restores the School database to a backup, reverting all changes.
 
 Available after logging in with an account with level 2 authorisation, the *Restore Account* button restores the Account database to a backup, reverting all changes.
