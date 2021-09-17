@@ -6,6 +6,9 @@ import itertools
 auth, resp = 2, 0 #CHANGE BACK TO 0
         
 def inters(t1, t2):
+    """
+    Returns whether two time intervals in (Day, StartTime, EndTime) format intersect
+    """
     for i in t1:
         for j in t2:
             if i[0] == j[0]:
@@ -14,6 +17,9 @@ def inters(t1, t2):
     return False
 
 def clash():
+    """
+    Prints out all clashes in schedule for teachers
+    """
     con = sqlite3.connect("database/School.db")
     for teach in con.execute("SELECT ID FROM Teacher"):
         courses = [i[0] for i in con.execute(f"SELECT CourseID FROM TeacherCourse WHERE TeacherID = '{teach[0]}'")]
@@ -25,36 +31,14 @@ def clash():
             if inters(ses1, ses2):
                 print(teach[0], list(con.execute(f"SELECT Name FROM Teacher WHERE ID = '{teach[0]}'"))[0][0], i[0], list(con.execute(f"SELECT Name FROM Course WHERE ID = '{i[0]}'"))[0][0], i[1], list(con.execute(f"SELECT Name FROM Course WHERE ID = '{i[1]}'"))[0][0])
 
-def gen_ic(sg, year):
-    """
-    Returns a random NRIC/FIN number
-    sg : bool
-        Whether or not the person is a Singaporean
-    year : int 
-        Year of birth of the person
-    """
-    tot = 0
-    if sg:
-        if year < 2000:
-            ic = "S" + str(year)[-2:] if year >= 1968 else "S" + str(random.randint(0,1))
-        else:
-            ic = "T" + str(year)[-2:]
-            tot += 4
-        check = ["J", "Z", "I", "H", "G", "F", "E", "D", "C", "B", "A"]
-    else:
-        if year < 2000:
-            ic = "F"
-        else:
-            ic = "G"
-            tot += 4
-        check = ["X", "W", "U", "T", "R", "Q", "P", "N", "M", "L", "K"]
-    for i in range(8 - len(ic)):
-        ic += str(random.randint(0,9))
-    tot += int(ic[1])*2 + int(ic[2])*7 + int(ic[3])*6 + int(ic[4])*5 + int(ic[5])*4 + int(ic[6])*3 + int(ic[7])*2
-    ic += check[tot % 11]
-    return ic
-
 def read_data(*cmds, db="School"):
+    """
+    Executes given SQL commands without commiting and returns the results
+    *cmds : str
+        SQL commands to execute
+    db : str
+        Database to access (School/Account)
+    """
     if cmds[0] is None:
         return ""
     if db.upper() not in ("SCHOOL", "ACCOUNT") or (db.upper() == "ACCOUNT" and auth < 2):
@@ -73,6 +57,13 @@ def read_data(*cmds, db="School"):
         conn.close()
 
 def update_data(*cmds, db="School"):
+    """
+    Executes and commits given SQL commands
+    *cmds : str
+        SQL commands to execute
+    db : str
+        Database to access (School/Account)
+    """
     if cmds[0] is None:
         return ""
     if db.upper() not in ("SCHOOL", "ACCOUNT") or (db.upper() == "SCHOOL" and auth == 0) or (db.upper() == "ACCOUNT" and auth < 2):
@@ -99,7 +90,43 @@ def update_data(*cmds, db="School"):
     finally:
         conn.close()
 
+def gen_ic(sg, year):
+    """
+    Returns a random NRIC/FIN number not in the School database
+    sg : bool
+        Whether or not the person is a Singaporean
+    year : int
+        Year of birth of the person
+    """
+    while True:
+        tot = 0
+        if sg:
+            if year < 2000:
+                ic = "S" + str(year)[-2:] if year >= 1968 else "S" + str(random.randint(0,1))
+            else:
+                ic = "T" + str(year)[-2:]
+                tot += 4
+            check = ["J", "Z", "I", "H", "G", "F", "E", "D", "C", "B", "A"]
+        else:
+            if year < 2000:
+                ic = "F"
+            else:
+                ic = "G"
+                tot += 4
+            check = ["X", "W", "U", "T", "R", "Q", "P", "N", "M", "L", "K"]
+        for i in range(8 - len(ic)):
+            ic += str(random.randint(0,9))
+        tot += int(ic[1])*2 + int(ic[2])*7 + int(ic[3])*6 + int(ic[4])*5 + int(ic[5])*4 + int(ic[6])*3 + int(ic[7])*2
+        ic += check[tot % 11]
+        if ic not in map(lambda x: x[0], read_data("SELECT ID FROM Student UNION SELECT ID FROM Teacher")):
+            return ic
+
 def restore(db):
+    """
+    Restores the database to a backup
+    db : str
+        Name of the database (School/Account)
+    """
     if db.upper() == "ACCOUNT":
         with open("database/Account.db", "wb") as f:
             with open("database/Account_backup.db", "rb") as g:
@@ -178,7 +205,6 @@ def post_data():
     db = "School" if not request.args.get("db") else request.args.get("db")
     cmd = request.args.get("cmd")
     resp = update_data(cmd, db=db)
-    print(cmd, resp)
     return resp
 
 @app.route("/backup", methods=['GET','POST'])
