@@ -53,6 +53,8 @@ Accounts can be deleted by selecting the checkboxes for each account and pressin
 
 Accounts can be added to the database by pressing the *Add Account* button. The username must be unique. Accounts with level 2 authorisation cannot be added in this way.
 
+Accounts with level 2 authorisation can only be created or deleted by passing a command directly into the /postdata URL although it is not recommended.
+
 All changes are not automatically saved. Refreshing the page will revert all changes that are not saved. The *Save Changes* button must be pressed to save any changes made to the Account database. 
 
 
