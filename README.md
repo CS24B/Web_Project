@@ -30,7 +30,7 @@ The *Add Record* button will only become enabled when all fields are properly fi
 
 Verification is present for StudentID and TeacherID when adding new students and teachers. The gen_ic() function in the project.py file may be used to generate legitimate NRIC/FIN numbers for StudentID and TeacherID.
 
-Start Time and End Time inputs for the Session tables must be valid 24-hour times between 0800 and 1900.
+StartTime and EndTime inputs for the Session tables must be valid 24-hour times between 0800 and 1900.
 
 Records may not be added if uniqueness of primary keys or foreign relations are not maintained.
 Search:
