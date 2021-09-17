@@ -23,18 +23,11 @@
       var active_search = 0;
       var db_tables = ["Student", "Teacher", "Class", "Course", "CCA", "StudentCourse", "StudentCCA", "TeacherCourse", "CourseSession", "CCASession"]
 
-      function change_content(val) {
-        content = val;
-      }
-
       function change_tab(val) {
         tab = val;
       }
       
-      function disable_keys(...keys) {
-        disabled_keys = keys;
-      }
-
+      // Return the set intersection of arrays
       function intersect(...arrs) {
         arrs = arrs.filter(arr => arr.length);
         for (let i = 1; i < arrs.length; i++) {
@@ -43,12 +36,14 @@
         return arrs[0];
       }
 
+      // Send get request to server to run SQL read commands and receive response
       async function get_data(cmd, db="School") {
         const response = await fetch(`/getdata?db=${encodeURIComponent(db)}&cmd=${encodeURIComponent(cmd)}`);
         const json = await response.json();
         return json;
       }
 
+      // Send post request to server to run SQL CUD commands
       function post_data(cmd, db="School") {
         fetch(`/postdata?db=${encodeURIComponent(db)}&cmd=${encodeURIComponent(cmd)}`, {method: "POST"});
       }
@@ -188,6 +183,7 @@
         }
       }
 
+      // Show Delete button in Account tab if checkbox checked and allow shift click functionality
       function del_checked(e, element) {
         var input_elements = document.getElementsByTagName("input");
         document.getElementById("account_del").style.visibility = "hidden";
@@ -219,6 +215,7 @@
         }
       }
 
+      // Show Delete button in Search tab if checkbox checked and allow shift click functionality
       function data_del_check(e, element) {
         var table = document.getElementsByClassName("search_group_table")[active_search];
         var rows = table.getElementsByClassName("table_data_row");
@@ -289,7 +286,7 @@
         var unames = Array.from(rows).map(x => x.children[1].innerText);
         var data = document.getElementById("edit_account_modal").getElementsByClassName("form-control");
         var index = unames.indexOf(data[0].value);
-        document.getElementById("edit_account_modal").getElementsByClassName("btn-primary")[0].disabled = false;
+        document.getElementById("edit_account_modal").getElementsByClassName("btn btn-primary")[0].disabled = false;
         if (index >= 0 && index !== edit_row) {
           document.getElementById("edit_account_modal").getElementsByClassName("btn btn-primary")[0].disabled = true;
         }
@@ -376,6 +373,7 @@
         modal.show();
       }
 
+      // Delete button function in Search tab
       function delete_data() {
         var table = document.getElementsByClassName("search_group_table")[active_search];
         var rows = table.getElementsByClassName("table_data_row");
@@ -403,6 +401,7 @@
         table.getElementsByClassName("scroll_head")[0].children[0].children[0].style.visibility = "hidden";
       }
 
+      // Restore database given to backup
       function backup(db="School") {
         fetch(`/backup?db=${db}`, {method: "POST"});
         location.reload();
@@ -535,6 +534,7 @@
         }
       }
 
+      // Verifies whether NRIC/FIN is legitimate and unique
       async function check_ic(ic) {
         var tot;
         var check;
@@ -567,6 +567,7 @@
         return true;
       }
 
+      // Verifies whether NRIC/FIN is legitimate
       function check_ic_2(ic) {
         var tot;
         var check;
@@ -784,6 +785,7 @@
         modal.hide();
       }
 
+      // Dynamic search functionality of Search tab
       async function live_search() {
         var sibs = document.getElementsByClassName("search_group")[active_search].children;
         var table = document.getElementsByClassName("search_group_table")[active_search];
@@ -1168,6 +1170,7 @@
         var modals = ["delete_account_modal", "add_account_modal", "save_account_modal", "add_record_modal", "delete_data_modal"];
         var mod;
 
+        // Keeps track of whether a modal is visible
         for (let i = 0; i < modals.length; i++) {
           mod = document.getElementById(modals[i]);
           mod.addEventListener("hidden.bs.modal", function() {
@@ -1178,49 +1181,58 @@
           });
         }
 
+        // Escape and delete key functionality when selecting items in Search and Account tab
         document.onkeydown = function(e) {
-          if (tab === 3) {
-            if (e.keyCode === 27 && document.activeElement.tagName === "TD") {
-              document.activeElement.blur();
-              return false;
+          if (tab === 2 && document.getElementsByClassName("data_del")[active_search].style.visibility === "visible") {
+            if (e.keyCode === 27) {
+              var rows = document.getElementsByClassName("search_group_table").children[0].children;
+              var cell;
+              document.getElementsByClassName("data_del")[active_search].style.visibility === "hidden";
+              for (let i = 1; i < rows.length; i++) {
+                cell = rows[i].children[0].children[0].checked = false;
+              }
             }
-            if (document.getElementById("account_del").style.visibility === "visible" && ["BODY", "INPUT"].includes(document.activeElement.tagName)) {
-              if (e.keyCode === 27) {
-                e.preventDefault();
-                var rows = document.getElementById("account_table").children[0].children;
-                var cell;
-                document.getElementById("account_del").style.visibility = "hidden";
-                for (let i = 1; i < rows.length; i++) {
-                  cell = rows[i].children[0]
-                  if (cell.children.length) {
-                    cell.children[0].checked = false;
-                  }
+            if (e.keyCode === 8 && !modal_vis) {
+              modal = new bootstrap.Modal(document.getElementById("delete_data_modal"));
+              modal.show();
+            }
+          }
+          if (tab === 3 && document.getElementById("account_del").style.visibility === "visible") {
+            if (e.keyCode === 27) {
+              var rows = document.getElementById("account_table").children[0].children;
+              var cell;
+              document.getElementById("account_del").style.visibility = "hidden";
+              for (let i = 1; i < rows.length; i++) {
+                cell = rows[i].children[0];
+                if (cell.children.length) {
+                  cell.children[0].checked = false;
                 }
               }
-              if (e.keyCode === 8 && !modal_vis) {
-                modal = new bootstrap.Modal(document.getElementById("delete_account_modal"));
-                modal.show();
-              }
+            }
+            if (e.keyCode === 8 && !modal_vis) {
+              modal = new bootstrap.Modal(document.getElementById("delete_account_modal"));
+              modal.show();
             }
           }
         }
         
+        // Somewhat deals with bad loading of large datalist
         student_input_s.oninput = function() {
           if (student_input_s.value === "") {
             student_input_s.setAttribute("list", "");
           } else {
             student_input_s.setAttribute("list", "student_list");
           }
-        };
+        }
 
+        // Somewhat deals with bad loading of large datalist
         student_input_t.oninput = function() {
           if (student_input_t.value === "") {
             student_input_t.setAttribute("list", "");
           } else {
             student_input_t.setAttribute("list", "student_list");
           }
-        };
-        
+        }
       }
     </script>
   </head>
