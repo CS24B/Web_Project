@@ -41,7 +41,7 @@ Available after logging in, the first select box indicates the table from which 
 
 Records are dynamically filtered based on the filters. If multiple filters are applied, only records that pass all filters will be displayed in the table. Filtered records will replace any existing elements in the table. The records can be edited by clicking the edit icon. Any edits must ensure that uniqueness of primary keys and foreign relations are maintained.
 
-Records can be deleted by selecting the checkboxes for each record and pressing the “Delete” button that appears or the delete key. Shift click can be used to select multiple records.
+Records can be deleted by selecting the checkboxes for each record and pressing the *Delete* button that appears or the delete key. Shift click can be used to select multiple records.
 
 All changes are automatically saved.
 
@@ -49,7 +49,7 @@ All changes are automatically saved.
 ## Account Tab
 Available after logging in with an account with level 2 authorisation, a table with all the account data is present. The username and password of each account can be edited by clicking the edit icon. Any edits must ensure that all usernames remain unique.
 
-Accounts can be deleted by selecting the checkboxes for each account and pressing the “Delete” button that appears or the delete key. Shift click can be used to select multiple accounts. Accounts with level 2 authorisation cannot be deleted in this way.
+Accounts can be deleted by selecting the checkboxes for each account and pressing the *Delete* button that appears or the delete key. Shift click can be used to select multiple accounts. Accounts with level 2 authorisation cannot be deleted in this way.
 
 Accounts can be added to the database by pressing the *Add Account* button. The username must be unique. Accounts with level 2 authorisation cannot be added in this way.
 
