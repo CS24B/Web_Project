@@ -3,33 +3,49 @@ import os.path, json, sqlite3, random
 import itertools
 
 
-auth, resp = 2, 0 #CHANGE BACK TO 0
+auth, resp, update = 2, 0, 0 #CHANGE BACK TO 0
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+school_db = os.path.join(BASE_DIR, "database/School.db")
+school_copy_db = os.path.join(BASE_DIR, "database/School_copy.db")
+school_backup_db = os.path.join(BASE_DIR, "database/School_backup.db")
+account_db = os.path.join(BASE_DIR, "database/Account.db")
+account_backup_db = os.path.join(BASE_DIR, "database/Account_backup.db")
         
-def inters(t1, t2):
+def intersect(t1, t2=None):
     """
-    Returns whether two time intervals in (Day, StartTime, EndTime) format intersect
+    Returns whether two time intervals in (Day, StartTime, EndTime) format of two courses intersect
     """
-    for i in t1:
-        for j in t2:
-            if i[0] == j[0]:
-                if int(i[1]) < int(j[1]) < int(i[2]) or int(j[1]) < int(i[2]) < int(j[2]) or int(j[1]) < int(i[1]) < int(j[2]) or int(j[1]) < int(i[2]) < int(j[2]) or (j[1] == i[1] and j[2] == i[2]):
+    if t2 is None:
+        for i in itertools.combinations(t1, 2):
+            if i[0][0] == i[1][0]:
+                if int(i[0][1]) <= int(i[1][1]) < int(i[0][2]) or int(i[1][1]) < int(i[0][2]) <= int(i[1][2]) or int(i[1][1]) <= int(i[0][1]) < int(i[1][2]) or int(i[1][1]) < int(i[0][2]) <= int(i[1][2]) or (i[1][1] == i[0][1] and i[1][2] == i[0][2]):
+                    return True
+    else:
+        for i in itertools.product(t1, t2):
+            if i[0][0] == i[1][0]:
+                if int(i[0][1]) <= int(i[1][1]) < int(i[0][2]) or int(i[1][1]) < int(i[0][2]) <= int(i[1][2]) or int(i[1][1]) <= int(i[0][1]) < int(i[1][2]) or int(i[1][1]) < int(i[0][2]) <= int(i[1][2]) or (i[1][1] == i[0][1] and i[1][2] == i[0][2]):
                     return True
     return False
 
 def clash():
     """
-    Prints out all clashes in schedule for teachers
+    Prints out all clashes in schedule for teachers and returns True if clash is found
     """
-    con = sqlite3.connect("database/School.db")
-    for teach in con.execute("SELECT ID FROM Teacher"):
-        courses = [i[0] for i in con.execute(f"SELECT CourseID FROM TeacherCourse WHERE TeacherID = '{teach[0]}'")]
-        if len(courses) <= 1:
+    clash = False
+    conn = sqlite3.connect(school_db)
+    for teach in conn.execute("SELECT ID FROM Teacher"):
+        courses = [i[0] for i in conn.execute(f"SELECT CourseID FROM TeacherCourse WHERE TeacherID = '{teach[0]}'")]
+        if len(courses) == 0:
             continue
-        for i in itertools.combinations(courses, 2):
-            ses1 = con.execute(f"SELECT Day, StartTime, EndTime FROM CourseSession WHERE CourseID = {i[0]}")
-            ses2 = con.execute(f"SELECT Day, StartTime, EndTime FROM CourseSession WHERE CourseID = {i[1]}")
-            if inters(ses1, ses2):
-                print(teach[0], list(con.execute(f"SELECT Name FROM Teacher WHERE ID = '{teach[0]}'"))[0][0], i[0], list(con.execute(f"SELECT Name FROM Course WHERE ID = '{i[0]}'"))[0][0], i[1], list(con.execute(f"SELECT Name FROM Course WHERE ID = '{i[1]}'"))[0][0])
+        for i in itertools.combinations_with_replacement(courses, 2):
+            ses1 = list(conn.execute(f"SELECT Day, StartTime, EndTime FROM CourseSession WHERE CourseID = {i[0]}"))
+            ses2 = list(conn.execute(f"SELECT Day, StartTime, EndTime FROM CourseSession WHERE CourseID = {i[1]}"))
+            if i[0] == 103 or i[1] == 103:
+                print(i, ses1,ses2)
+            if (i[0] != i[1] and intersect(ses1, ses2)) or intersect(ses1):
+                print(teach[0], i[0], i[1])
+                clash = True
+    return clash
 
 def read_data(*cmds, db="School"):
     """
@@ -44,10 +60,11 @@ def read_data(*cmds, db="School"):
     if db.upper() not in ("SCHOOL", "ACCOUNT") or (db.upper() == "ACCOUNT" and auth < 2):
         return f"<h2>Unable to Access Database: {db}</h2>"
     db = db.title()
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.path.join(BASE_DIR, f"database/{db}.db")
     try:
-        conn = sqlite3.connect(db_path)
+        if db.upper() == "SCHOOL":
+            conn = sqlite3.connect(school_db)
+        else:
+            conn = sqlite3.connect(account_db)
         if len(cmds) == 1:
             return list(conn.execute(cmds[0]))
         return [list(conn.execute(cmd)) for cmd in cmds]
@@ -64,24 +81,39 @@ def update_data(*cmds, db="School"):
     db : str
         Database to access (School/Account)
     """
+    global update
     if cmds[0] is None:
         return ""
     if db.upper() not in ("SCHOOL", "ACCOUNT") or (db.upper() == "SCHOOL" and auth == 0) or (db.upper() == "ACCOUNT" and auth < 2):
         return f"<h2>Unable to Access Database: {db}</h2>"
     for cmd in cmds:
         if any(i in cmd.upper() for i in ("CREATE", "DROP", "ALTER", "RENAME", "GRANT", "REVOKE")):
-            return f"<h2>Unauthorised Command</h2>"
-    db = db.title()
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.path.join(BASE_DIR, f"database/{db}.db")
+            return "<h2>Unauthorised Command</h2>"
+    with open(school_copy_db, "wb") as f:
+        with open(school_db, "rb") as g:
+            f.write(g.read())
     try:
-        conn = sqlite3.connect(db_path)
+        if db.upper() == "SCHOOL":
+            conn = sqlite3.connect(school_db)
+        else:
+            conn = sqlite3.connect(account_db)
+        print(cmds)
         if len(cmds) == 1:
             conn.execute(cmds[0])
         else:
             for cmd in cmds:
                 conn.execute(cmd)
         conn.commit()
+        conn.close()
+        if clash():
+            print("A")
+            update = 0
+            with open(school_db, "wb") as f:
+                with open(school_copy_db, "rb") as g:
+                    f.write(g.read())
+            return "<h2>Schedule Error</h2>"
+        print("B")
+        update = 1
         return "<h2>Command Executed</h2>"
     except sqlite3.OperationalError as e:
         return f"<h2>sqlite3.OperationalError: {e}</h2>"
@@ -128,12 +160,12 @@ def restore(db):
         Name of the database (School/Account)
     """
     if db.upper() == "ACCOUNT":
-        with open("database/Account.db", "wb") as f:
-            with open("database/Account_backup.db", "rb") as g:
+        with open(account_db, "wb") as f:
+            with open(account_backup_db, "rb") as g:
                 f.write(g.read())
     elif db.upper() == "SCHOOL":
-        with open("database/School.db", "wb") as f:
-            with open("database/School_backup.db", "rb") as g:
+        with open(school_db, "wb") as f:
+            with open(school_backup_db, "rb") as g:
                 f.write(g.read())
 
 app = Flask(__name__)
@@ -190,30 +222,28 @@ def logout():
     auth = 0
     return redirect("/")
 
-@app.route("/getdata", methods=['GET','POST'])
+@app.route("/getdata", methods=["GET","POST"])
 def get_data():
     db = "School" if not request.args.get("db") else request.args.get("db")
     cmd = request.args.get("cmd")
-    if request.method == "GET":
-        data = read_data(cmd, db=db)
-        if isinstance(data, str):
-            return data
-        return json.dumps([i for i in data] if data != [] and not isinstance(data, str) else data)
+    data = read_data(cmd, db=db)
+    if isinstance(data, str):
+        return data
+    return json.dumps([i for i in data] if data != [] and not isinstance(data, str) else data)
 
-@app.route("/postdata", methods=['GET','POST'])
+@app.route("/postdata", methods=["GET","POST"])
 def post_data():
     db = "School" if not request.args.get("db") else request.args.get("db")
     cmd = request.args.get("cmd")
-    resp = update_data(cmd, db=db)
-    return resp
+    return json.dumps(update_data(cmd, db=db))
 
-@app.route("/backup", methods=['GET','POST'])
+@app.route("/backup", methods=["GET","POST"])
 def backup():
     db = "School" if not request.args.get("db") else request.args.get("db")
     restore(db)
     return redirect("/")
 
-@app.route("/availability", methods=['GET', 'POST'])
+@app.route("/availability", methods=["GET", "POST"])
 def availability():
     times = {
         "Monday": [i for i in range(800, 1900, 10) if i % 100 < 60],
@@ -255,5 +285,9 @@ def availability():
             times.append([i, "0"*(j[0]<1000) + str(j[0]) + " - " + "0"*(j[1]<1000) + str(j[1])])
     return render_template("search.html", times = times)
       
+@app.route("/update")
+def get_update():
+    return json.dumps(update);
+
 if __name__ == "__main__":
     app.run()

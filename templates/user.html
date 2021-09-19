@@ -36,7 +36,7 @@
         return arrs[0];
       }
 
-      // Send get request to server to run SQL read commands and receive response
+      // Send get request to server to receive SQL read command response
       async function get_data(cmd, db="School") {
         const response = await fetch(`/getdata?db=${encodeURIComponent(db)}&cmd=${encodeURIComponent(cmd)}`);
         const json = await response.json();
@@ -44,10 +44,19 @@
       }
 
       // Send post request to server to run SQL CUD commands
-      function post_data(cmd, db="School") {
-        fetch(`/postdata?db=${encodeURIComponent(db)}&cmd=${encodeURIComponent(cmd)}`, {method: "POST"});
+      async function post_data(cmd, db="School") {
+        const response = await fetch(`/postdata?db=${encodeURIComponent(db)}&cmd=${encodeURIComponent(cmd)}`, {method: "POST"});
+        const json = await response.json();
+        return json;
       }
 
+      // Send get request to server whether update from post_data was made
+      async function get_update() {
+        const response = await fetch("/update");
+        const json = await response.json();
+        return json;
+      }
+      
       async function add_students() {
         var student_name = document.getElementById("student_name_s").value;
         var class_name = document.getElementById("class_name_s").value;
@@ -751,35 +760,37 @@
         }
       }
 
-      function edit_data() {
+      async function edit_data() {
         var data = document.getElementById("edit_data_modal").getElementsByClassName("form-control");
         var row = Array.from(document.getElementsByClassName("search_group_table")[active_search].getElementsByClassName("table_data_row")[edit_row].children).splice(1, data.length);
         if (active_search === 0) {
-            post_data(`UPDATE Student SET ID = '${format(data[0].value)}', Name = '${format(data[1].value).toUpperCase()}', ClassID = ${format(data[2].value)} WHERE ID = '${format(row[0].innerText)}'`);
-          } else if (active_search === 1) {
-            post_data(`UPDATE Teacher SET ID = '${format(data[0].value)}', Name = '${format(data[1].value).toUpperCase()}', ClassID = ${format(data[2].value)} WHERE ID = '${format(row[0].innerText)}'`);
-          } else if (active_search === 2) {
-            post_data(`UPDATE Class SET ID = ${format(data[0].value)}, Name = '${format(data[1].value)}' WHERE ID = ${format(row[0].innerText)}`);
-          } else if (active_search === 3) {
-            post_data(`UPDATE Course SET ID = ${format(data[0].value)}, Name = '${format(data[1].value)}' WHERE ID = ${format(row[0].innerText)}`);
-          } else if (active_search === 4) {
-            post_data(`UPDATE CCA SET ID = ${format(data[0].value)}, Name = '${format(data[1].value)}' WHERE ID = ${format(row[0].innerText)}`);
-          } else if (active_search === 5) {
-            post_data(`UPDATE StudentCourse SET StudentID = '${format(data[0].value)}', CourseID = ${format(data[1].value)} WHERE StudentID = '${format(row[0].innerText)}' AND CourseID = ${format(row[1].innerText)}`);
-          } else if (active_search === 6) {
-            post_data(`UPDATE StudentCCA SET StudentID = '${format(data[0].value)}', CCAID = ${format(data[1].value)} WHERE StudentID = '${format(row[0].innerText)}' AND CCAID = ${format(row[1].innerText)}`);
-          } else if (active_search === 7) {
-            post_data(`UPDATE TeacherCourse SET TeacherID = '${format(data[0].value)}', CourseID = ${format(data[1].value)} WHERE TeacherID = '${format(row[0].innerText)}' AND CourseID = ${format(row[1].innerText)}`);
-          } else if (active_search === 8) {
-            post_data(`UPDATE CourseSession SET CourseID = ${format(data[0].value)}, Day = '${format(data[1].value)}', StartTime = '${format(data[2].value)}', EndTime = '${format(data[3].value)}' WHERE CourseID = ${format(row[0].innerText)} AND Day = '${format(row[1].innerText)}' AND StartTime = '${format(row[2].innerText)}'`);
-          } else {
-            post_data(`UPDATE CCASession SET CCAID = ${format(data[0].value)}, Day = '${format(data[1].value)}', StartTime = '${format(data[2].value)}', EndTime = '${format(data[3].value)}' WHERE CCAID = ${format(row[0].innerText)} AND Day = '${format(row[1].innerText)}' AND StartTime = '${format(row[2].innerText)}'`);
-          }
-        for (let i = 0; i < data.length; i++) {
-          if ([0, 1].includes(active_search) && i == 1) {
-            row[i].innerText = data[i].value.toUpperCase();
-          } else {
-            row[i].innerText = data[i].value;
+          await post_data(`UPDATE Student SET ID = '${format(data[0].value)}', Name = '${format(data[1].value).toUpperCase()}', ClassID = ${format(data[2].value)} WHERE ID = '${format(row[0].innerText)}'`);
+        } else if (active_search === 1) {
+          await post_data(`UPDATE Teacher SET ID = '${format(data[0].value)}', Name = '${format(data[1].value).toUpperCase()}', ClassID = ${format(data[2].value)} WHERE ID = '${format(row[0].innerText)}'`);
+        } else if (active_search === 2) {
+          await post_data(`UPDATE Class SET ID = ${format(data[0].value)}, Name = '${format(data[1].value)}' WHERE ID = ${format(row[0].innerText)}`);
+        } else if (active_search === 3) {
+          await post_data(`UPDATE Course SET ID = ${format(data[0].value)}, Name = '${format(data[1].value)}' WHERE ID = ${format(row[0].innerText)}`);
+        } else if (active_search === 4) {
+          await post_data(`UPDATE CCA SET ID = ${format(data[0].value)}, Name = '${format(data[1].value)}' WHERE ID = ${format(row[0].innerText)}`);
+        } else if (active_search === 5) {
+          await post_data(`UPDATE StudentCourse SET StudentID = '${format(data[0].value)}', CourseID = ${format(data[1].value)} WHERE StudentID = '${format(row[0].innerText)}' AND CourseID = ${format(row[1].innerText)}`);
+        } else if (active_search === 6) {
+          await post_data(`UPDATE StudentCCA SET StudentID = '${format(data[0].value)}', CCAID = ${format(data[1].value)} WHERE StudentID = '${format(row[0].innerText)}' AND CCAID = ${format(row[1].innerText)}`);
+        } else if (active_search === 7) {
+          await post_data(`UPDATE TeacherCourse SET TeacherID = '${format(data[0].value)}', CourseID = ${format(data[1].value)} WHERE TeacherID = '${format(row[0].innerText)}' AND CourseID = ${format(row[1].innerText)}`);
+        } else if (active_search === 8) {
+          await post_data(`UPDATE CourseSession SET CourseID = ${format(data[0].value)}, Day = '${format(data[1].value)}', StartTime = '${format(data[2].value)}', EndTime = '${format(data[3].value)}' WHERE CourseID = ${format(row[0].innerText)} AND Day = '${format(row[1].innerText)}' AND StartTime = '${format(row[2].innerText)}'`);
+        } else {
+          await post_data(`UPDATE CCASession SET CCAID = ${format(data[0].value)}, Day = '${format(data[1].value)}', StartTime = '${format(data[2].value)}', EndTime = '${format(data[3].value)}' WHERE CCAID = ${format(row[0].innerText)} AND Day = '${format(row[1].innerText)}' AND StartTime = '${format(row[2].innerText)}'`);
+        }
+        if (await get_update() === 1) {
+          for (let i = 0; i < data.length; i++) {
+            if ([0, 1].includes(active_search) && i == 1) {
+              row[i].innerText = data[i].value.toUpperCase();
+            } else {
+              row[i].innerText = data[i].value;
+            }
           }
         }
         modal.hide();
