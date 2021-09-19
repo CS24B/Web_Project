@@ -1,6 +1,6 @@
 # Web Project
 
-It is recommended to view the web application in a Chrome, Safari, or Edge Browser in full screen for the best experience.
+It is recommended to view the web application in a Chrome, Safari, or Edge browser in full screen for the best experience.
 
 
 ## Database
