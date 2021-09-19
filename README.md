@@ -59,7 +59,7 @@ Accounts can be added to the database by pressing the *Add Account* button. The 
 
 All changes are not automatically saved. Refreshing the page will revert all changes that are not saved. The *Save Changes* button must be pressed to save any changes made to the Account database. 
 
-Accounts with level 2 authorisation can be created or deleted by passing a command directly into the /postdata URL while logged in with level 2 authorisation although it is not recommended or by editing the Account database.
+Accounts with level 2 authorisation can be created or deleted by passing a command directly into the /postdata URL while logged in with level 2 authorisation although it is not recommended or by editing Account.db.
 
 
 ## Restore Tab
