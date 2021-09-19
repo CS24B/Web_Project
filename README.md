@@ -4,7 +4,7 @@ It is recommended to view the web application in a Chrome, Safari, or Edge Brows
 
 
 ## Database
-CCASession and TeacherCourse records as well as Student and Teacher IDs are randomly generated.
+The main databases are *School.db* and *Account.db* and may be edited. The *School_copy.db*, *School_backup.db*, and *Account_backup.db* databases are used to revert changes made to *School.db* and *Account.db* and shoulc not be edited. *CCASession* and *TeacherCourse* records as well as Student and Teacher IDs are randomly generated.
 
 
 ## Availability Tab
