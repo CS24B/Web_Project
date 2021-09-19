@@ -33,7 +33,7 @@ Available after logging in, the first select box indicates the table in which a 
 
 The *Add Record* button will only become enabled when all fields are properly filled in. If a dropdown is present on a field, one of its items must be selected.
 
-Verification is present for StudentID and TeacherID when adding new students and teachers. The gen_ic() function in the project.py file may be used to generate legitimate NRIC/FIN numbers for StudentID and TeacherID.
+Verification is present for StudentID and TeacherID when adding new students and teachers. The *gen_ic()* function in the *project.py* file may be used to generate legitimate NRIC/FIN numbers for StudentID and TeacherID.
 
 StartTime and EndTime inputs for the Session tables must be valid 24-hour times between 0800 and 1900.
 
@@ -59,7 +59,7 @@ Accounts can be added to the database by pressing the *Add Account* button. The 
 
 All changes are not automatically saved. Refreshing the page will revert all changes that are not saved. The *Save Changes* button must be pressed to save any changes made to the Account database. 
 
-Accounts with level 2 authorisation can be created or deleted by passing a command directly into the /postdata URL while logged in with level 2 authorisation although it is not recommended or by editing Account.db.
+Accounts with level 2 authorisation can be created or deleted by passing a command directly into the /postdata URL while logged in with level 2 authorisation although it is not recommended or by editing *Account.db*.
 
 
 ## Restore Tab
