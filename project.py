@@ -3,7 +3,7 @@ import os.path, json, sqlite3, random
 import itertools
 
 
-auth, resp, update = 2, 0, 0 #CHANGE BACK TO 0
+auth, resp, update = 0, 0, 0
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 school_db = os.path.join(BASE_DIR, "database/School.db")
 school_copy_db = os.path.join(BASE_DIR, "database/School_copy.db")
