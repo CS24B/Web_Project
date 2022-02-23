@@ -18,7 +18,7 @@ If multiple filters are applied, only students/teachers that pass all filters wi
 
 The *Clear Students* button removes all elements from the table of filtered students while the *Clear Teachers* button removes all elements from the table of filtered teachers. Individual students/teachers can also be removed from the tables by clicking on the respective delete icon.
 
-The *Search Availability* button will redirect to a new page where the shared availabilities of all the students and teachers in the filtered tables is displayed. Times can be removed from the table in the new page by clicking on the respective delete icon.
+The *Search Availability* button will redirect to a new page where the shared availability timings of all the students and teachers in the filtered tables are displayed. Times can be removed from the table in the new page by clicking on the respective delete icon.
 
 
 ## Login
