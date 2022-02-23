@@ -4,7 +4,7 @@ It is recommended to view the web application in a Chrome or Edge browser in ful
 
 
 ## Database
-The main databases are *School.db* and *Account.db* and may be edited. The *School_copy.db*, *School_backup.db*, and *Account_backup.db* databases are used to revert changes made to *School.db* and *Account.db* and shoulc not be edited.
+The main databases are *School.db* and *Account.db* and may be edited. The *School_copy.db*, *School_backup.db*, and *Account_backup.db* databases are used to revert changes made to *School.db* and *Account.db* and should not be edited.
 
 Within *School.db*, *CCASession* and *TeacherCourse* records as well as Student and Teacher IDs are randomly generated.
 
